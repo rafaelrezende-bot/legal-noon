@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/permissions";
+import { getNextAvailableColor } from "@/lib/category-colors";
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -14,10 +15,19 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
   try {
     const supabase = createAdminClient();
-    const { name, color } = await request.json();
-    if (!name || !color) return NextResponse.json({ error: "Nome e cor são obrigatórios." }, { status: 400 });
+    const { name, color: providedColor } = await request.json();
+    if (!name) return NextResponse.json({ error: "Nome é obrigatório." }, { status: 400 });
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const { data, error } = await supabase.from("categories").insert({ name, slug, color }).select().single();
+
+    // Auto-assign color if not provided
+    let finalColor = providedColor;
+    if (!finalColor) {
+      const { data: existing } = await supabase.from("categories").select("color");
+      const usedColors = (existing || []).map((c: any) => c.color).filter(Boolean);
+      finalColor = getNextAvailableColor(usedColors);
+    }
+
+    const { data, error } = await supabase.from("categories").insert({ name, slug, color: finalColor }).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ category: data });
   } catch (error: any) {

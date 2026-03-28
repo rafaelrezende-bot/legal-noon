@@ -481,7 +481,7 @@ export default function DocumentosPage() {
                   <Button type="button" size="icon" variant="ghost" className="text-green-600 hover:text-green-700 hover:bg-green-50 shrink-0"
                     disabled={!newUploadCatName.trim()}
                     onClick={async () => {
-                      const res = await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newUploadCatName.trim(), color: "#025382" }) });
+                      const res = await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newUploadCatName.trim() }) });
                       if (res.ok) {
                         const { category: newCat } = await res.json();
                         await fetchCategories();
