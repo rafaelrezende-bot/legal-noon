@@ -2,10 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropic } from "@/lib/anthropic";
 
-const EXTRACTION_SYSTEM = `Você é um especialista em compliance regulatório do mercado financeiro brasileiro.
+const EXTRACTION_SYSTEM = `Você é um especialista em compliance regulatório do mercado financeiro brasileiro,
+especializado em análise de documentos normativos da CVM, ANBIMA, BCB e políticas internas
+de gestoras de recursos.
 
-Sua tarefa é analisar o documento a seguir e extrair TODAS as obrigações regulatórias,
-prazos e compromissos de compliance que ele contém.
+Sua tarefa é analisar o documento a seguir e extrair TODAS as obrigações, deveres,
+responsabilidades e compromissos de compliance que ele contém. Isso inclui:
+
+1. **Obrigações com prazo calendário** (ex: "enviar relatório até o dia 10 de cada mês")
+2. **Obrigações contínuas/permanentes** (ex: "manter políticas de gestão de risco atualizadas")
+3. **Obrigações eventuais** (ex: "registrar veículos na ANBIMA quando constituídos")
+4. **Deveres de conduta** (ex: "manter certificação profissional ativa")
+5. **Requisitos de governança** (ex: "estabelecer procedimentos de controle de operações")
+
+NÃO ignore obrigações só porque não têm uma data fixa. Obrigações contínuas e de
+monitoramento são tão importantes quanto as com prazo calendário.
 
 Para cada obrigação identificada, retorne um objeto JSON com:
 - title: nome curto e descritivo da obrigação (máx 80 caracteres)
@@ -13,8 +24,10 @@ Para cada obrigação identificada, retorne um objeto JSON com:
 - category: uma de ["CVM", "ANBIMA", "PLDFT", "Interno"]
 - frequency: uma de ["anual", "semestral", "trimestral", "mensal", "continuo", "por_evento"]
 - deadline_day: dia do mês do prazo (número 1-31, ou null se não aplicável)
-- deadline_month: mês do prazo (número 1-12, ou null se recorrente)
-- legal_basis: base legal ou referência normativa`;
+- deadline_month: mês do prazo (número 1-12, ou null se recorrente ou contínua)
+- legal_basis: base legal ou referência normativa (ex: "Código AGRT ANBIMA, Art. 12")
+
+Seja abrangente — é melhor extrair demais e o usuário desmarcar do que perder uma obrigação.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,7 +76,7 @@ Responda APENAS com o JSON, sem texto adicional.`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [
         {
