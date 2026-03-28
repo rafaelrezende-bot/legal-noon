@@ -101,6 +101,15 @@ export const toolDefinitions = [
       properties: {},
     },
   },
+  {
+    name: "status_treinamentos",
+    description:
+      "Retorna o status de treinamentos de todas as Pessoas Supervisionadas: quem está em dia, vencendo ou vencido para cada tipo de treinamento.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
 ];
 
 export async function executeTool(
@@ -295,6 +304,27 @@ export async function executeTool(
         concluidas_mes: concluidas,
         pendentes,
       });
+    }
+
+    case "status_treinamentos": {
+      const PESSOAS = ["Patrick Ledoux", "Carlos Aguiar", "Nelson Bechara", "Tereza Cidade", "Ricardo Kanitz", "Eduardo Alcalay"];
+      const { data: tTypes } = await supabase.from("training_types").select("*").order("name");
+      const { data: tRecords } = await supabase.from("training_records").select("*").order("completed_at", { ascending: false });
+
+      const today = new Date().toISOString().split("T")[0];
+      const result = (tTypes || []).map((tt: any) => {
+        const participants = PESSOAS.map((name) => {
+          const latest = (tRecords || []).find((r: any) => r.participant_name === name && r.training_type_id === tt.id);
+          if (!latest) return { nome: name, status: "nunca_realizado", ultimo: null, validade: null };
+          if (!latest.expires_at) return { nome: name, status: "realizado", ultimo: latest.completed_at, validade: null };
+          const status = latest.expires_at < today ? "vencido" : "em_dia";
+          return { nome: name, status, ultimo: latest.completed_at, validade: latest.expires_at };
+        });
+        const emDia = participants.filter((p: any) => p.status === "em_dia" || p.status === "realizado").length;
+        return { treinamento: tt.name, categoria: tt.category, frequencia: tt.frequency, participantes_em_dia: `${emDia}/${PESSOAS.length}`, detalhes: participants };
+      });
+
+      return JSON.stringify({ treinamentos: result });
     }
 
     case "status_revisao_politicas": {
