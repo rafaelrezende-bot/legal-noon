@@ -1,11 +1,10 @@
 "use client"
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Calendar, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, MessageSquare } from 'lucide-react'
 
 const nav = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'Calendario', href: '/calendario', icon: Calendar },
   { label: 'Assistente IA', href: '/chat', icon: MessageSquare },
 ]
 
