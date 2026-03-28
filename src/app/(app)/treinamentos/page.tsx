@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { GraduationCap, Plus, AlertTriangle, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { GraduationCap, Plus, AlertTriangle, Clock, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
 
 const PESSOAS_SUPERVISIONADAS = [
   { name: "Patrick Ledoux", role: "Sócio-Diretor" },
@@ -56,7 +56,7 @@ function getTypeStatus(records: TrainingRecord[], typeId: string) {
 export default function TreinamentosPage() {
   const [types, setTypes] = useState<TrainingType[]>([]);
   const [records, setRecords] = useState<TrainingRecord[]>([]);
-  const [showDetails, setShowDetails] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<TrainingType | null>(null);
   const [showNewType, setShowNewType] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -153,24 +153,31 @@ export default function TreinamentosPage() {
       </div>
 
       <Card className="bg-white rounded-xl shadow-sm border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Treinamento</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Categoria</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Frequência</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Participantes</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Status</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {types.map((t) => {
-                const ts = getTypeStatus(records, t.id);
-                return (
-                  <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-6 py-4">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3 w-8"></th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase px-3 py-3">Treinamento</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Categoria</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Frequência</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Pendências</th>
+            </tr>
+          </thead>
+          <tbody>
+            {types.map((t) => {
+              const ts = getTypeStatus(records, t.id);
+              const pendingCount = PESSOAS_SUPERVISIONADAS.length - ts.okCount;
+              const isExpanded = expandedId === t.id;
+              return (
+                <React.Fragment key={t.id}>
+                  <tr
+                    className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors"
+                    onClick={() => { setExpandedId(isExpanded ? null : t.id); setSelectedType(t); }}
+                  >
+                    <td className="pl-6 py-4">
+                      <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
+                    </td>
+                    <td className="px-3 py-4">
                       <p className="text-sm font-medium text-gray-800">{t.name}</p>
                       {t.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{t.description}</p>}
                     </td>
@@ -178,76 +185,82 @@ export default function TreinamentosPage() {
                       <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: (categoryColors[t.category] || "#6B7280") + "15", color: categoryColors[t.category] || "#6B7280" }}>{t.category}</Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 capitalize">{t.frequency}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-800">{ts.okCount}/{PESSOAS_SUPERVISIONADAS.length}</td>
                     <td className="px-6 py-4">
-                      <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: ts.bg, color: ts.color }}>{ts.label}</Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Button variant="outline" size="sm" className="text-xs" onClick={() => { setSelectedType(t); setShowDetails(true); }}>Ver detalhes</Button>
+                      {pendingCount === 0 ? (
+                        <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: "#F0FDF4", color: "#16A34A" }}>Todos em dia</Badge>
+                      ) : pendingCount === PESSOAS_SUPERVISIONADAS.length ? (
+                        <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>{pendingCount}/{PESSOAS_SUPERVISIONADAS.length} pendentes</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: "#FFFBEB", color: "#F59E0B" }}>{pendingCount}/{PESSOAS_SUPERVISIONADAS.length} pendentes</Badge>
+                      )}
                     </td>
                   </tr>
-                );
-              })}
-              {types.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">Nenhum treinamento cadastrado.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Details Modal */}
-      <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          {selectedType && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{selectedType.name}</DialogTitle>
-              </DialogHeader>
-              <div className="mt-2">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">Participante</th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">Último</th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">Validade</th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">Status</th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase py-2"></th>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={5} className="p-0">
+                        <div className="px-6 py-4" style={{ backgroundColor: "#F9FAFB" }}>
+                          <table className="w-full">
+                            <thead>
+                              <tr>
+                                <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">Participante</th>
+                                <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">Último</th>
+                                <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">Validade</th>
+                                <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">Status</th>
+                                <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {PESSOAS_SUPERVISIONADAS.map((p) => {
+                                const ps = getParticipantStatus(records, p.name, t.id);
+                                const isOk = ps.status === "ok";
+                                return (
+                                  <tr key={p.name} className="border-t border-gray-100">
+                                    <td className="py-3">
+                                      <p className="text-sm font-medium text-gray-800">{p.name}</p>
+                                      <p className="text-xs text-gray-400">{p.role}</p>
+                                    </td>
+                                    <td className="py-3 text-sm text-gray-500">
+                                      {ps.record ? new Date(ps.record.completed_at + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                                    </td>
+                                    <td className="py-3 text-sm text-gray-500">
+                                      {ps.record?.expires_at ? new Date(ps.record.expires_at + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                                    </td>
+                                    <td className="py-3">
+                                      <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: ps.bg, color: ps.color }}>{ps.label}</Badge>
+                                    </td>
+                                    <td className="py-3">
+                                      <Button
+                                        variant={isOk ? "ghost" : "outline"}
+                                        size="sm"
+                                        className={`text-xs ${!isOk ? "border-gray-300" : "text-gray-400"}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedType(t); setRegisterParticipant(p.name);
+                                          setRegisterDate(new Date().toISOString().split("T")[0]);
+                                          setRegisterNotes(""); setShowRegister(true);
+                                        }}
+                                      >
+                                        Registrar
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {PESSOAS_SUPERVISIONADAS.map((p) => {
-                      const ps = getParticipantStatus(records, p.name, selectedType.id);
-                      return (
-                        <tr key={p.name} className="border-b border-gray-50">
-                          <td className="py-3">
-                            <p className="text-sm font-medium text-gray-800">{p.name}</p>
-                            <p className="text-xs text-gray-400">{p.role}</p>
-                          </td>
-                          <td className="py-3 text-sm text-gray-500">
-                            {ps.record ? new Date(ps.record.completed_at + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
-                          </td>
-                          <td className="py-3 text-sm text-gray-500">
-                            {ps.record?.expires_at ? new Date(ps.record.expires_at + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
-                          </td>
-                          <td className="py-3">
-                            <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: ps.bg, color: ps.color }}>{ps.label}</Badge>
-                          </td>
-                          <td className="py-3">
-                            <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                              setRegisterParticipant(p.name); setRegisterDate(new Date().toISOString().split("T")[0]); setRegisterNotes(""); setShowRegister(true);
-                            }}>Registrar</Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {types.length === 0 && (
+              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">Nenhum treinamento cadastrado.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </Card>
 
       {/* Register Training Modal */}
       <Dialog open={showRegister} onOpenChange={setShowRegister}>
