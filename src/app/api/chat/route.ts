@@ -2,44 +2,55 @@ import { NextRequest, NextResponse } from "next/server";
 import { anthropic, SYSTEM_PROMPT } from "@/lib/anthropic";
 import { toolDefinitions, executeTool } from "@/lib/chat-tools";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { searchRelevantChunks } from "@/lib/rag-search";
 
-async function buildSystemPrompt(): Promise<string> {
+async function buildSystemPrompt(userMessage: string): Promise<string> {
   try {
     const supabase = createAdminClient();
+
+    // Get document list (names only, no content)
     const { data: documents } = await supabase
       .from("policy_documents")
-      .select("name, category, content")
+      .select("name, category")
       .order("name");
 
-    if (!documents || documents.length === 0) return SYSTEM_PROMPT;
+    const documentList = (documents || [])
+      .map((d) => `- ${d.name} (${d.category || "Geral"})`)
+      .join("\n");
 
-    // Truncate each document to ~20k chars to stay within token limits
-    const MAX_DOC_CHARS = 20000;
-    const docsSection = documents
-      .map(
-        (d) => {
-          const content = d.content.length > MAX_DOC_CHARS
-            ? d.content.substring(0, MAX_DOC_CHARS) + "\n\n[... documento truncado ...]"
-            : d.content;
-          return `### ${d.name} (Categoria: ${d.category})\n\n${content}`;
-        }
-      )
-      .join("\n\n---\n\n");
+    // RAG: search relevant chunks for the user's question
+    let ragContext = "Nenhum trecho relevante encontrado nos documentos.";
+    try {
+      const relevantChunks = await searchRelevantChunks(userMessage, supabase, {
+        matchThreshold: 0.65,
+        matchCount: 8,
+      });
+
+      if (relevantChunks.length > 0) {
+        ragContext = relevantChunks
+          .map((chunk) => `[Fonte: ${chunk.documentName}]\n${chunk.content}`)
+          .join("\n\n---\n\n");
+      }
+    } catch (ragError) {
+      console.error("RAG search failed, continuing without context:", ragError);
+    }
 
     return `${SYSTEM_PROMPT}
 
-## DOCUMENTOS DE POLÍTICAS E REGULAMENTOS
+## Documentos disponíveis no sistema
+${documentList}
 
-A seguir estão os documentos completos das políticas internas e regulamentos da Noon Capital Partners.
-Use estes documentos para responder perguntas com precisão, citando o documento e seção relevante.
+## Trechos relevantes dos documentos (recuperados por similaridade)
+Os trechos abaixo foram selecionados automaticamente com base na pergunta do usuário.
+Use-os para fundamentar suas respostas. Sempre cite o documento fonte.
 
-Quando responder perguntas sobre políticas ou regulamentos, SEMPRE cite o nome do documento
-e a seção específica de onde a informação foi extraída. Se a informação não estiver em nenhum
-dos documentos carregados, diga claramente que não encontrou essa informação nos documentos disponíveis.
+${ragContext}
 
----
-
-${docsSection}`;
+## Regras adicionais
+- Cite o documento fonte quando usar informações dos trechos acima
+- Se a informação não estiver nos trechos fornecidos, diga que não encontrou nos documentos e sugira consultar o documento diretamente
+- Use as tools disponíveis para consultar e atualizar dados do sistema
+- Seja preciso com prazos, datas e obrigações`;
   } catch {
     return SYSTEM_PROMPT;
   }
@@ -56,7 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = await buildSystemPrompt();
+    const systemPrompt = await buildSystemPrompt(message);
 
     const messages: { role: "user" | "assistant"; content: any }[] = [
       ...(history || []).map((m: { role: string; content: string }) => ({
@@ -122,7 +133,7 @@ export async function POST(request: NextRequest) {
         "Desculpe, a consulta ficou complexa demais. Tente simplificar sua pergunta.",
     });
   } catch (error: any) {
-    console.error("Chat API error:", error?.message || error, error?.status, JSON.stringify(error?.error || {}).substring(0, 500));
+    console.error("Chat API error:", error?.message || error);
     return NextResponse.json(
       { error: "Failed to get response" },
       { status: 500 }

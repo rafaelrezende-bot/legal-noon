@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractTextFromPDF } from "@/lib/pdf-extract";
+import { processDocumentForRAG } from "@/lib/document-processor";
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,12 +42,22 @@ export async function POST(request: NextRequest) {
         content,
         pages,
         storage_path: storagePath,
+        rag_status: "processing",
       })
       .select()
       .single();
 
     if (insertError) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+
+    // Process for RAG (chunking + embeddings) in background
+    try {
+      await processDocumentForRAG(doc.id, content, supabase);
+      await supabase.from("policy_documents").update({ rag_status: "ready" }).eq("id", doc.id);
+    } catch (ragError: any) {
+      console.error("RAG processing error:", ragError.message);
+      await supabase.from("policy_documents").update({ rag_status: "error" }).eq("id", doc.id);
     }
 
     return NextResponse.json({ document: doc });
