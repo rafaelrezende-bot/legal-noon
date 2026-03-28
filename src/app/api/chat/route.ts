@@ -13,10 +13,16 @@ async function buildSystemPrompt(): Promise<string> {
 
     if (!documents || documents.length === 0) return SYSTEM_PROMPT;
 
+    // Truncate each document to ~20k chars to stay within token limits
+    const MAX_DOC_CHARS = 20000;
     const docsSection = documents
       .map(
-        (d) =>
-          `### ${d.name} (Categoria: ${d.category})\n\n${d.content}`
+        (d) => {
+          const content = d.content.length > MAX_DOC_CHARS
+            ? d.content.substring(0, MAX_DOC_CHARS) + "\n\n[... documento truncado ...]"
+            : d.content;
+          return `### ${d.name} (Categoria: ${d.category})\n\n${content}`;
+        }
       )
       .join("\n\n---\n\n");
 
@@ -116,7 +122,7 @@ export async function POST(request: NextRequest) {
         "Desculpe, a consulta ficou complexa demais. Tente simplificar sua pergunta.",
     });
   } catch (error: any) {
-    console.error("Chat API error:", error);
+    console.error("Chat API error:", error?.message || error, error?.status, JSON.stringify(error?.error || {}).substring(0, 500));
     return NextResponse.json(
       { error: "Failed to get response" },
       { status: 500 }
