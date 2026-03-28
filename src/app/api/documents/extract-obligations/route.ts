@@ -30,13 +30,17 @@ Para cada obrigação identificada, retorne um objeto JSON com:
 Seja abrangente — é melhor extrair demais e o usuário desmarcar do que perder uma obrigação.`;
 
 export async function POST(request: NextRequest) {
+  let documentId: string | undefined;
   try {
     const supabase = createAdminClient();
-    const { documentId } = await request.json();
+    ({ documentId } = await request.json());
 
     if (!documentId) {
       return NextResponse.json({ error: "documentId é obrigatório." }, { status: 400 });
     }
+
+    // Set processing status
+    await supabase.from("policy_documents").update({ extraction_status: "processing" }).eq("id", documentId);
 
     // Fetch only this document
     const { data: doc } = await supabase
@@ -114,9 +118,31 @@ Responda APENAS com o JSON, sem texto adicional.`;
       legal_basis: o.legal_basis || null,
     }));
 
+    // Save to extracted_obligations table
+    if (obligations.length > 0) {
+      const rows = obligations.map((o: any) => ({
+        document_id: documentId,
+        title: o.title,
+        description: o.description,
+        suggested_category: o.category,
+        frequency: o.frequency,
+        deadline_day: o.deadline_day,
+        deadline_month: o.deadline_month,
+        legal_basis: o.legal_basis,
+        obligation_type: o.frequency === 'continuo' || o.frequency === 'por_evento' ? 'continua' : 'prazo_fixo',
+        status: 'pending',
+      }));
+
+      await supabase.from("extracted_obligations").insert(rows);
+      await supabase.from("policy_documents").update({ extraction_status: "done" }).eq("id", documentId);
+    } else {
+      await supabase.from("policy_documents").update({ extraction_status: "no_obligations" }).eq("id", documentId);
+    }
+
     return NextResponse.json({ document_name: doc.name, obligations });
   } catch (error: any) {
     console.error("Extract obligations error:", error?.message || error);
+    if (documentId) { try { await createAdminClient().from("policy_documents").update({ extraction_status: "error" }).eq("id", documentId); } catch {} }
     return NextResponse.json({ error: error.message || "Erro na extração." }, { status: 500 });
   }
 }
