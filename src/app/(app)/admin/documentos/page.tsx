@@ -46,11 +46,11 @@ function getReviewStatus(lastReviewed: string | null): { status: string; label: 
 interface Suggestion {
   name: string;
   description: string;
-  deadline_description?: string;
   frequency: string;
   category: string;
   regulatory_basis?: string;
-  responsible?: string;
+  deadline_day?: number | null;
+  deadline_month?: number | null;
   selected: boolean;
 }
 
@@ -173,13 +173,26 @@ export default function DocumentosPage() {
     setMessage(null);
 
     try {
-      const res = await fetch(`/api/documents/${id}/analyze`, { method: "POST" });
+      const res = await fetch("/api/documents/extract-obligations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: id }),
+      });
       const data = await res.json();
 
       if (!res.ok) {
         setMessage({ type: "error", text: data.error || "Erro na análise." });
       } else {
-        setSuggestions((data.suggestions || []).map((s: any) => ({ ...s, selected: true })));
+        setSuggestions((data.obligations || []).map((o: any) => ({
+          name: o.title,
+          description: o.description,
+          frequency: o.frequency,
+          category: o.category,
+          regulatory_basis: o.legal_basis,
+          deadline_day: o.deadline_day,
+          deadline_month: o.deadline_month,
+          selected: true,
+        })));
         setAnalysisDocName(name);
         setShowAnalysis(true);
       }
@@ -195,19 +208,31 @@ export default function DocumentosPage() {
     const selected = suggestions.filter((s) => s.selected);
 
     try {
-      for (const s of selected) {
-        await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: `Crie a seguinte obrigação no calendário: título "${s.name}", descrição "${s.description}", categoria "${s.category.toLowerCase()}", frequência "${s.frequency}", base legal "${s.regulatory_basis || ""}"`,
-            history: [],
-          }),
-        });
+      const obligations = selected.map((s) => ({
+        title: s.name,
+        description: s.description,
+        category: s.category,
+        frequency: s.frequency,
+        deadline_day: s.deadline_day || null,
+        deadline_month: s.deadline_month || null,
+        legal_basis: s.regulatory_basis || null,
+      }));
+
+      const res = await fetch("/api/obligations/batch-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ obligations }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage({ type: "error", text: data.error || "Erro ao adicionar obrigações." });
+      } else {
+        setMessage({ type: "success", text: `${data.created} obrigação(ões) adicionada(s) ao calendário.` });
+        setShowAnalysis(false);
+        setSuggestions([]);
       }
-      setMessage({ type: "success", text: `${selected.length} obrigação(ões) adicionada(s) ao calendário.` });
-      setShowAnalysis(false);
-      setSuggestions([]);
     } catch {
       setMessage({ type: "error", text: "Erro ao adicionar obrigações." });
     } finally {
