@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Send, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Send, RefreshCw, Plus, UserCheck, Users, Pencil } from "lucide-react";
 
 interface InvitedUser {
   id: string;
@@ -37,6 +38,15 @@ export default function UsuariosPage() {
   const [reinviting, setReinviting] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [users, setUsers] = useState<InvitedUser[]>([]);
+  const [activeTab, setActiveTab] = useState<"users" | "persons">("users");
+  // Supervised persons state
+  const [persons, setPersons] = useState<any[]>([]);
+  const [showAddPerson, setShowAddPerson] = useState(false);
+  const [showEditPerson, setShowEditPerson] = useState(false);
+  const [editPerson, setEditPerson] = useState<any>(null);
+  const [personName, setPersonName] = useState("");
+  const [personRole, setPersonRole] = useState("");
+  const [personEmail, setPersonEmail] = useState("");
 
   const supabase = createClient();
 
@@ -61,9 +71,16 @@ export default function UsuariosPage() {
     setUsers(enriched);
   }, []);
 
+  const fetchPersons = useCallback(async () => {
+    const res = await fetch("/api/supervised-persons?all=true");
+    const { persons: p } = await res.json();
+    setPersons(p || []);
+  }, []);
+
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchPersons();
+  }, [fetchUsers, fetchPersons]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,15 +137,66 @@ export default function UsuariosPage() {
     }
   };
 
+  const handleAddPerson = async (e: React.FormEvent) => {
+    e.preventDefault(); setLoading(true); setMessage(null);
+    const res = await fetch("/api/supervised-persons", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: personName, role: personRole, email: personEmail }),
+    });
+    if (res.ok) {
+      setMessage({ type: "success", text: `${personName} adicionado(a).` });
+      setShowAddPerson(false); setPersonName(""); setPersonRole(""); setPersonEmail(""); fetchPersons();
+    } else { setMessage({ type: "error", text: "Erro ao adicionar." }); }
+    setLoading(false);
+  };
+
+  const handleEditPerson = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!editPerson) return; setLoading(true); setMessage(null);
+    const res = await fetch("/api/supervised-persons", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editPerson.id, name: personName, role: personRole, email: personEmail }),
+    });
+    if (res.ok) {
+      setMessage({ type: "success", text: "Dados atualizados." });
+      setShowEditPerson(false); fetchPersons();
+    } else { setMessage({ type: "error", text: "Erro ao atualizar." }); }
+    setLoading(false);
+  };
+
+  const handleToggleActive = async (person: any) => {
+    const newActive = !person.active;
+    const action = newActive ? "reativar" : "desativar";
+    if (!newActive && !confirm(`Ao desativar, ${person.name} não aparecerá em novos treinamentos ou períodos de declaração. O histórico será preservado. Continuar?`)) return;
+    const res = await fetch("/api/supervised-persons", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: person.id, active: newActive }),
+    });
+    if (res.ok) {
+      setMessage({ type: "success", text: `${person.name} ${newActive ? "reativado(a)" : "desativado(a)"}.` });
+      fetchPersons();
+    }
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-1" style={{ color: "#111827" }}>
-        Usuários
+        Usuários e Pessoas
       </h1>
-      <p className="text-sm text-gray-500 mb-6">
-        Convide pessoas para acessar o Legal Noon.
+      <p className="text-sm text-gray-500 mb-4">
+        Gerencie acessos ao sistema e cadastro de Pessoas Supervisionadas.
       </p>
 
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 border-b border-gray-200">
+        <button onClick={() => setActiveTab("users")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "users" ? "border-[#0F334D] text-[#0F334D]" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+          <Users className="w-4 h-4" />Usuários do sistema
+        </button>
+        <button onClick={() => setActiveTab("persons")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "persons" ? "border-[#0F334D] text-[#0F334D]" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+          <UserCheck className="w-4 h-4" />Pessoas Supervisionadas
+        </button>
+      </div>
+
+      {activeTab === "users" && (<>
       {/* Invite form */}
       <Card className="p-6 bg-white rounded-xl shadow-sm border-gray-200 mb-8">
         <h2 className="text-base font-semibold mb-4" style={{ color: "#0F334D" }}>
@@ -253,6 +321,105 @@ export default function UsuariosPage() {
           </table>
         </div>
       </Card>
+      </>)}
+
+      {activeTab === "persons" && (<>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-gray-500">Sócios-diretores e profissionais supervisionados pela área de compliance.</p>
+          <Button onClick={() => { setPersonName(""); setPersonRole(""); setPersonEmail(""); setShowAddPerson(true); }} className="text-white" style={{ backgroundColor: "#0F334D" }}>
+            <Plus className="w-4 h-4 mr-2" />Adicionar pessoa
+          </Button>
+        </div>
+
+        <Card className="bg-white rounded-xl shadow-sm border-gray-200 overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Nome</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Cargo</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Email</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Status</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {persons.map((p) => (
+                <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-800">{p.name}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{p.role || "—"}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{p.email || "—"}</td>
+                  <td className="px-6 py-4">
+                    <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: p.active ? "#F0FDF4" : "#F3F4F6", color: p.active ? "#16A34A" : "#6B7280" }}>
+                      {p.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditPerson(p); setPersonName(p.name); setPersonRole(p.role || ""); setPersonEmail(p.email || ""); setShowEditPerson(true); }} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                        <Pencil className="w-3.5 h-3.5" />Editar
+                      </button>
+                      <button onClick={() => handleToggleActive(p)} className={`text-xs flex items-center gap-1 ${p.active ? "text-gray-500 hover:text-red-600" : "text-blue-500 hover:text-blue-700"}`}>
+                        {p.active ? "Desativar" : "Reativar"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {persons.length === 0 && (
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400">Nenhuma pessoa cadastrada.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </Card>
+
+        {/* Add Person Modal */}
+        <Dialog open={showAddPerson} onOpenChange={setShowAddPerson}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Adicionar pessoa</DialogTitle></DialogHeader>
+            <form onSubmit={handleAddPerson} className="space-y-4 mt-2">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Nome completo</label>
+                <Input value={personName} onChange={(e) => setPersonName(e.target.value)} required />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Cargo / função</label>
+                <Input value={personRole} onChange={(e) => setPersonRole(e.target.value)} placeholder="Ex: Sócio-Diretor" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Email</label>
+                <Input type="email" value={personEmail} onChange={(e) => setPersonEmail(e.target.value)} placeholder="Opcional" />
+              </div>
+              <Button type="submit" disabled={loading || !personName} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+                {loading ? "Salvando..." : "Salvar"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Person Modal */}
+        <Dialog open={showEditPerson} onOpenChange={setShowEditPerson}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Editar pessoa</DialogTitle></DialogHeader>
+            <form onSubmit={handleEditPerson} className="space-y-4 mt-2">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Nome completo</label>
+                <Input value={personName} onChange={(e) => setPersonName(e.target.value)} required />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Cargo / função</label>
+                <Input value={personRole} onChange={(e) => setPersonRole(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Email</label>
+                <Input type="email" value={personEmail} onChange={(e) => setPersonEmail(e.target.value)} />
+              </div>
+              <Button type="submit" disabled={loading || !personName} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+                {loading ? "Salvando..." : "Salvar alterações"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </>)}
     </div>
   );
 }

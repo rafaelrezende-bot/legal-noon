@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const PESSOAS = ["Patrick Ledoux", "Carlos Aguiar", "Nelson Bechara", "Tereza Cidade", "Ricardo Kanitz", "Eduardo Alcalay"];
-
 export async function GET() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -33,10 +31,16 @@ export async function POST(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Create pending declarations for all participants
-    const declarations = PESSOAS.map((name) => ({
+    // Fetch active supervised persons from DB
+    const { data: persons } = await supabase
+      .from("supervised_persons")
+      .select("id, name")
+      .eq("active", true);
+
+    const declarations = (persons || []).map((p: any) => ({
       period_id: period.id,
-      participant_name: name,
+      participant_name: p.name,
+      supervised_person_id: p.id,
       status: "pendente",
     }));
 

@@ -113,6 +113,14 @@ export const toolDefinitions = [
     },
   },
   {
+    name: "listar_pessoas_supervisionadas",
+    description: "Lista todas as Pessoas Supervisionadas ativas da Noon Capital",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
     name: "status_treinamentos",
     description:
       "Retorna o status de treinamentos de todas as Pessoas Supervisionadas: quem está em dia, vencendo ou vencido para cada tipo de treinamento.",
@@ -317,6 +325,14 @@ export async function executeTool(
       });
     }
 
+    case "listar_pessoas_supervisionadas": {
+      const { data: spList } = await supabase
+        .from("supervised_persons")
+        .select("name, role, email, active")
+        .order("name");
+      return JSON.stringify({ pessoas: spList || [] });
+    }
+
     case "status_declaracoes_investimentos": {
       let query = supabase
         .from("declaration_periods")
@@ -351,7 +367,8 @@ export async function executeTool(
     }
 
     case "status_treinamentos": {
-      const PESSOAS = ["Patrick Ledoux", "Carlos Aguiar", "Nelson Bechara", "Tereza Cidade", "Ricardo Kanitz", "Eduardo Alcalay"];
+      const { data: pessoasData } = await supabase.from("supervised_persons").select("name").eq("active", true);
+      const PESSOAS = (pessoasData || []).map((p: any) => p.name);
       const { data: tTypes } = await supabase.from("training_types").select("*").order("name");
       const { data: tRecords } = await supabase.from("training_records").select("*").order("completed_at", { ascending: false });
 

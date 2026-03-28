@@ -8,14 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { GraduationCap, Plus, AlertTriangle, Clock, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
 
-const PESSOAS_SUPERVISIONADAS = [
-  { name: "Patrick Ledoux", role: "Sócio-Diretor" },
-  { name: "Carlos Aguiar", role: "Sócio-Diretor" },
-  { name: "Nelson Bechara", role: "Sócio-Diretor" },
-  { name: "Tereza Cidade", role: "Diretora de Compliance" },
-  { name: "Ricardo Kanitz", role: "Sócio-Diretor" },
-  { name: "Eduardo Alcalay", role: "Sócio-Diretor" },
-];
+interface SupervisedPerson { id: string; name: string; role: string | null; }
 
 const categoryColors: Record<string, string> = {
   PLDFT: "#F59E0B", Compliance: "#1E7FA8", Interno: "#6B7280", "Código de Ética": "#6366F1",
@@ -23,6 +16,9 @@ const categoryColors: Record<string, string> = {
 
 interface TrainingType { id: string; name: string; description: string | null; category: string; frequency: string; required: boolean; }
 interface TrainingRecord { id: string; training_type_id: string; participant_name: string; completed_at: string; expires_at: string | null; notes: string | null; }
+
+// Will be populated from DB
+let PESSOAS_SUPERVISIONADAS: SupervisedPerson[] = [];
 
 function getParticipantStatus(records: TrainingRecord[], participantName: string, typeId: string) {
   const latest = records
@@ -71,12 +67,14 @@ export default function TreinamentosPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [typesRes, recordsRes] = await Promise.all([
-      fetch("/api/training/types"), fetch("/api/training/records"),
+    const [typesRes, recordsRes, personsRes] = await Promise.all([
+      fetch("/api/training/types"), fetch("/api/training/records"), fetch("/api/supervised-persons"),
     ]);
     const { types: t } = await typesRes.json();
     const { records: r } = await recordsRes.json();
+    const { persons: p } = await personsRes.json();
     setTypes(t || []); setRecords(r || []);
+    PESSOAS_SUPERVISIONADAS = (p || []).map((sp: any) => ({ id: sp.id, name: sp.name, role: sp.role }));
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
