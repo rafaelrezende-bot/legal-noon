@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { extractTextFromPDF } from "@/lib/pdf-extract";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,11 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    // Extract text using pdf-parse v1
-    const pdfParse = (await import("pdf-parse")).default;
-    const pdfData = await pdfParse(buffer);
-    const content = pdfData.text;
-    const pages = pdfData.numpages;
+    const { text: content, pages } = await extractTextFromPDF(buffer);
 
     const { data: doc, error: insertError } = await supabase
       .from("policy_documents")
