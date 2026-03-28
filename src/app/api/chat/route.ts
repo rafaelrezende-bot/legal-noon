@@ -1,6 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { anthropic, SYSTEM_PROMPT } from "@/lib/anthropic";
 import { toolDefinitions, executeTool } from "@/lib/chat-tools";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+async function buildSystemPrompt(): Promise<string> {
+  try {
+    const supabase = createAdminClient();
+    const { data: documents } = await supabase
+      .from("policy_documents")
+      .select("name, category, content")
+      .order("name");
+
+    if (!documents || documents.length === 0) return SYSTEM_PROMPT;
+
+    const docsSection = documents
+      .map(
+        (d) =>
+          `### ${d.name} (Categoria: ${d.category})\n\n${d.content}`
+      )
+      .join("\n\n---\n\n");
+
+    return `${SYSTEM_PROMPT}
+
+## DOCUMENTOS DE POLÍTICAS E REGULAMENTOS
+
+A seguir estão os documentos completos das políticas internas e regulamentos da Noon Capital Partners.
+Use estes documentos para responder perguntas com precisão, citando o documento e seção relevante.
+
+Quando responder perguntas sobre políticas ou regulamentos, SEMPRE cite o nome do documento
+e a seção específica de onde a informação foi extraída. Se a informação não estiver em nenhum
+dos documentos carregados, diga claramente que não encontrou essa informação nos documentos disponíveis.
+
+---
+
+${docsSection}`;
+  } catch {
+    return SYSTEM_PROMPT;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +50,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const systemPrompt = await buildSystemPrompt();
+
     const messages: { role: "user" | "assistant"; content: any }[] = [
       ...(history || []).map((m: { role: string; content: string }) => ({
         role: m.role as "user" | "assistant",
@@ -21,7 +60,6 @@ export async function POST(request: NextRequest) {
       { role: "user" as const, content: message },
     ];
 
-    // Tool use loop: keep calling Claude until we get a final text response
     let maxIterations = 5;
     while (maxIterations > 0) {
       maxIterations--;
@@ -29,12 +67,11 @@ export async function POST(request: NextRequest) {
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 2048,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         tools: toolDefinitions,
         messages,
       });
 
-      // If stop_reason is "end_turn", extract final text
       if (response.stop_reason === "end_turn") {
         const text = response.content
           .filter((b) => b.type === "text")
@@ -43,12 +80,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ response: text });
       }
 
-      // If stop_reason is "tool_use", execute tools and continue
       if (response.stop_reason === "tool_use") {
-        // Add assistant response with tool_use blocks
         messages.push({ role: "assistant", content: response.content });
 
-        // Execute each tool call and build tool_result blocks
         const toolResults = [];
         for (const block of response.content) {
           if (block.type === "tool_use") {
@@ -64,21 +98,22 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Add tool results as user message
         messages.push({ role: "user", content: toolResults });
         continue;
       }
 
-      // Fallback: extract any text
       const text = response.content
         .filter((b) => b.type === "text")
         .map((b) => (b as { type: "text"; text: string }).text)
         .join("");
-      return NextResponse.json({ response: text || "Não consegui processar a solicitação." });
+      return NextResponse.json({
+        response: text || "Não consegui processar a solicitação.",
+      });
     }
 
     return NextResponse.json({
-      response: "Desculpe, a consulta ficou complexa demais. Tente simplificar sua pergunta.",
+      response:
+        "Desculpe, a consulta ficou complexa demais. Tente simplificar sua pergunta.",
     });
   } catch (error: any) {
     console.error("Chat API error:", error);
