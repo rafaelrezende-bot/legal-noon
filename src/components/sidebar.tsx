@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarDays, FileText, GraduationCap, Briefcase, Users, LogOut } from 'lucide-react'
+import { CalendarDays, FileText, GraduationCap, Briefcase, Users, LogOut, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserRole } from '@/hooks/use-user-role'
 
@@ -57,6 +57,16 @@ export function Sidebar() {
         <p className="text-xs mt-1" style={{ color: '#B2C7D6' }}>Noon Capital Partners</p>
       </div>
       <div className="mx-5 mb-2" style={{ height: '1px', backgroundColor: '#D2BD80', opacity: 0.3 }} />
+      <div className="px-3 mb-2">
+        <button onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors" style={{ color: '#B2C7D6' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#B2C7D6'; }}>
+          <Search className="w-4 h-4" />
+          <span>Buscar</span>
+          <kbd className="ml-auto text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#B2C7D6' }}>⌘K</kbd>
+        </button>
+      </div>
       <nav className="flex-1 px-3">
         {nav.map(item => {
           const active = pathname === item.href

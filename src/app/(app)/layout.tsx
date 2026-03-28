@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/sidebar"
 import { ChatPanel } from "@/components/chat-panel"
+import { GlobalSearch } from "@/components/global-search"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <ChatPanel />
+      <GlobalSearch />
     </>
   )
 }
