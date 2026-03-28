@@ -27,14 +27,14 @@ export function ObligationCard({ instance, onClick }: Props) {
   const effectiveStatus = instance.status !== 'concluida' && dueDate < today ? 'atrasada' : instance.status
 
   return (
-    <Card className="p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4" style={{ borderLeftColor: category.color }} onClick={onClick}>
+    <Card className="p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4 bg-white rounded-xl shadow-sm border-gray-200" style={{ borderLeftColor: category.color }} onClick={onClick}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: category.color + '15', color: category.color }}>
           {category.name}
         </span>
         <StatusBadge status={effectiveStatus} size="sm" />
       </div>
-      <h3 className="font-semibold text-gray-900 text-base mb-1">{obligation.title}</h3>
+      <h3 className="font-semibold text-gray-800 text-base mb-1">{obligation.title}</h3>
       {obligation.description && (
         <p className="text-sm text-gray-500 line-clamp-2 mb-3">{obligation.description}</p>
       )}

@@ -106,18 +106,18 @@ export function ChatPanel() {
         style={{ height: "70vh", maxHeight: "600px" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: '#0F334D' }}>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-white">
               Assistente Legal Noon
             </h2>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs" style={{ color: '#8CB8D4' }}>
               Compliance regulatório brasileiro
             </p>
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"
           >
             <X className="w-4 h-4" />
           </button>
