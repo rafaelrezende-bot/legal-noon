@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireRole } from "@/lib/permissions";
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -13,6 +14,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireRole('admin')();
+  if (denied) return denied;
   try {
     const supabase = createAdminClient();
     const body = await request.json();

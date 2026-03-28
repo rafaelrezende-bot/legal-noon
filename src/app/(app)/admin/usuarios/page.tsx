@@ -34,6 +34,7 @@ const statusConfig = {
 export default function UsuariosPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("leitor");
   const [loading, setLoading] = useState(false);
   const [reinviting, setReinviting] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -91,7 +92,7 @@ export default function UsuariosPage() {
       const res = await fetch("/api/admin/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ name, email, role: inviteRole }),
       });
 
       const data = await res.json();
@@ -222,6 +223,14 @@ export default function UsuariosPage() {
                 placeholder="email@exemplo.com"
                 required
               />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Perfil</label>
+              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm">
+                <option value="leitor">Leitor</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Administrador</option>
+              </select>
             </div>
           </div>
           {message && (

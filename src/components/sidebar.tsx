@@ -4,18 +4,22 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, FileText, GraduationCap, Briefcase, Users, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useUserRole } from '@/hooks/use-user-role'
 
-const nav = [
-  { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'Documentos', href: '/admin/documentos', icon: FileText },
-  { label: 'Treinamentos', href: '/treinamentos', icon: GraduationCap },
-  { label: 'Invest. Pessoais', href: '/investimentos-pessoais', icon: Briefcase },
-  { label: 'Usuários', href: '/admin/usuarios', icon: Users },
+const baseNav = [
+  { label: 'Dashboard', href: '/', icon: LayoutDashboard, adminOnly: false },
+  { label: 'Documentos', href: '/admin/documentos', icon: FileText, adminOnly: false },
+  { label: 'Treinamentos', href: '/treinamentos', icon: GraduationCap, adminOnly: false },
+  { label: 'Invest. Pessoais', href: '/investimentos-pessoais', icon: Briefcase, adminOnly: false },
+  { label: 'Usuários', href: '/admin/usuarios', icon: Users, adminOnly: true },
 ]
+
+const roleLabels: Record<string, string> = { admin: 'Administrador', editor: 'Editor', leitor: 'Leitor' }
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { role, isAdmin } = useUserRole()
   const [userName, setUserName] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userInitial, setUserInitial] = useState('U')
@@ -41,9 +45,10 @@ export function Sidebar() {
     router.refresh()
   }
 
+  const nav = baseNav.filter(item => !item.adminOnly || isAdmin)
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-[260px] flex flex-col" style={{ backgroundColor: '#033244' }}>
-      {/* Logo */}
       <div className="p-6">
         <h1 className="text-xl font-bold">
           <span className="text-white">Legal </span>
@@ -51,49 +56,33 @@ export function Sidebar() {
         </h1>
         <p className="text-xs mt-1" style={{ color: '#B2C7D6' }}>Noon Capital Partners</p>
       </div>
-
-      {/* Gold divider */}
       <div className="mx-5 mb-2" style={{ height: '1px', backgroundColor: '#D2BD80', opacity: 0.3 }} />
-
-      {/* Navigation */}
       <nav className="flex-1 px-3">
         {nav.map(item => {
           const active = pathname === item.href
           return (
             <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm transition-colors ${
-                active ? 'font-semibold' : 'font-medium'
-              }`}
-              style={
-                active
-                  ? { backgroundColor: '#025382', borderLeft: '3px solid #D2BD80' }
-                  : {}
-              }>
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm transition-colors ${active ? 'font-semibold' : 'font-medium'}`}
+              style={active ? { backgroundColor: '#025382', borderLeft: '3px solid #D2BD80' } : {}}>
               <item.icon className="w-5 h-5" style={{ color: active ? '#D2BD80' : '#B2C7D6' }} />
               <span style={{ color: active ? '#FFFFFF' : '#B2C7D6' }}>{item.label}</span>
             </Link>
           )
         })}
       </nav>
-
-      {/* User footer */}
       <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#025382', color: '#FFFFFF' }}>{userInitial}</div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-white truncate">{userName || 'Carregando...'}</p>
-            {userEmail && <p className="text-xs truncate" style={{ color: '#B2C7D6' }}>{userEmail}</p>}
+            <p className="text-xs truncate" style={{ color: '#D2BD80', opacity: 0.7 }}>{roleLabels[role] || role}</p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-sm w-full px-1 py-1.5 rounded transition-colors"
+        <button onClick={handleLogout} className="flex items-center gap-2 text-sm w-full px-1 py-1.5 rounded transition-colors"
           style={{ color: '#B2C7D6' }}
           onMouseEnter={(e) => e.currentTarget.style.color = '#D2BD80'}
-          onMouseLeave={(e) => e.currentTarget.style.color = '#B2C7D6'}
-        >
-          <LogOut className="w-4 h-4" />
-          Sair
+          onMouseLeave={(e) => e.currentTarget.style.color = '#B2C7D6'}>
+          <LogOut className="w-4 h-4" />Sair
         </button>
       </div>
     </aside>

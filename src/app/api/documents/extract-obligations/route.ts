@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { anthropic } from "@/lib/anthropic";
+import { requireRole } from "@/lib/permissions";
 
 const MAX_CHARS_PER_CHUNK = 60000;
 const OVERLAP_CHARS = 2000;
@@ -154,6 +155,8 @@ ${text}
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireRole('admin', 'editor')();
+  if (denied) return denied;
   let documentId: string | undefined;
   try {
     const supabase = createAdminClient();

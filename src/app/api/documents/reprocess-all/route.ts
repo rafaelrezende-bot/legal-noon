@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processDocumentForRAG } from "@/lib/document-processor";
+import { requireRole } from "@/lib/permissions";
 
 export async function POST() {
+  const denied = await requireRole('admin')();
+  if (denied) return denied;
   try {
     const supabase = createAdminClient();
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireRole } from "@/lib/permissions";
 
 export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireRole('admin')();
+  if (denied) return denied;
   try {
     const supabase = createAdminClient();
     const { name, role, email } = await request.json();
@@ -33,6 +36,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const denied = await requireRole('admin')();
+  if (denied) return denied;
   try {
     const supabase = createAdminClient();
     const { id, name, role, email, active } = await request.json();

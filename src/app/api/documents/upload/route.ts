@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractTextFromPDF } from "@/lib/pdf-extract";
 import { processDocumentForRAG } from "@/lib/document-processor";
+import { requireRole } from "@/lib/permissions";
 
 export async function POST(request: NextRequest) {
+  const denied = await requireRole('admin', 'editor')();
+  if (denied) return denied;
   try {
     const supabase = createAdminClient();
     const formData = await request.formData();
