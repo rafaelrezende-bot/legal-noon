@@ -107,10 +107,10 @@ export default function InvestimentosPessoaisPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#111827" }}>Investimentos Pessoais</h1>
+          <h1 className="text-2xl font-bold" style={{ color: "#033244" }}>Investimentos Pessoais</h1>
           <p className="text-sm text-gray-500">Declarações de valores mobiliários das Pessoas Supervisionadas</p>
         </div>
-        <Button onClick={() => setShowNewPeriod(true)} className="text-white" style={{ backgroundColor: "#0F334D" }}>
+        <Button onClick={() => setShowNewPeriod(true)} className="text-white" style={{ backgroundColor: "#025382" }}>
           <Plus className="w-4 h-4 mr-2" />Novo período
         </Button>
       </div>
@@ -124,12 +124,12 @@ export default function InvestimentosPessoaisPage() {
         <div className="grid grid-cols-4 gap-4 mb-6">
           <Card className="p-5 bg-white rounded-xl shadow-sm border-gray-200 col-span-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EBF5FA" }}>
-                <Briefcase className="w-5 h-5" style={{ color: "#0F334D" }} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#F2F2F2" }}>
+                <Briefcase className="w-5 h-5" style={{ color: "#025382" }} />
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium">Período atual</p>
-                <p className="text-sm font-bold" style={{ color: "#0F334D" }}>{currentPeriod.reference_label}</p>
+                <p className="text-sm font-bold" style={{ color: "#025382" }}>{currentPeriod.reference_label}</p>
                 <p className="text-xs text-gray-400">Prazo: {new Date(currentPeriod.due_date + "T12:00:00").toLocaleDateString("pt-BR")}</p>
               </div>
             </div>
@@ -158,7 +158,7 @@ export default function InvestimentosPessoaisPage() {
       {currentPeriod && (
         <Card className="bg-white rounded-xl shadow-sm border-gray-200 overflow-hidden mb-8">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-base font-semibold" style={{ color: "#0F334D" }}>{currentPeriod.reference_label}</h2>
+            <h2 className="text-base font-semibold" style={{ color: "#025382" }}>{currentPeriod.reference_label}</h2>
           </div>
           <table className="w-full">
             <thead>
@@ -200,7 +200,7 @@ export default function InvestimentosPessoaisPage() {
       {periods.length > 1 && (
         <Card className="bg-white rounded-xl shadow-sm border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-base font-semibold" style={{ color: "#0F334D" }}>Histórico de períodos</h2>
+            <h2 className="text-base font-semibold" style={{ color: "#025382" }}>Histórico de períodos</h2>
           </div>
           <table className="w-full">
             <thead>
@@ -269,7 +269,7 @@ export default function InvestimentosPessoaisPage() {
               <label className="text-xs font-medium text-gray-600 mb-1 block">Prazo de entrega</label>
               <Input type="date" value={npDate} onChange={(e) => setNpDate(e.target.value)} required />
             </div>
-            <Button type="submit" disabled={loading} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+            <Button type="submit" disabled={loading} className="w-full text-white" style={{ backgroundColor: "#025382" }}>
               {loading ? "Criando..." : "Criar período"}
             </Button>
           </form>
@@ -335,7 +335,7 @@ export default function InvestimentosPessoaisPage() {
                   <textarea value={registerNotes} onChange={(e) => setRegisterNotes(e.target.value)} placeholder="Observações (opcional)" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm min-h-[50px] resize-none" />
                 </div>
 
-                <Button onClick={handleSubmit} disabled={loading} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+                <Button onClick={handleSubmit} disabled={loading} className="w-full text-white" style={{ backgroundColor: "#025382" }}>
                   {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</> : "Salvar declaração"}
                 </Button>
               </div>

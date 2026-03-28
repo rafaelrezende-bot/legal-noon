@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Legal Noon — Compliance Regulatório",
@@ -19,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full bg-gray-50 font-sans">{children}</body>
+    <html lang="pt-BR" className="h-full antialiased">
+      <body className="min-h-full font-sans" style={{ backgroundColor: '#F2F2F2' }}>{children}</body>
     </html>
   );
 }

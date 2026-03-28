@@ -11,7 +11,7 @@ import { GraduationCap, Plus, AlertTriangle, Clock, CheckCircle2, Loader2, Chevr
 interface SupervisedPerson { id: string; name: string; role: string | null; }
 
 const categoryColors: Record<string, string> = {
-  PLDFT: "#F59E0B", Compliance: "#1E7FA8", Interno: "#6B7280", "Código de Ética": "#6366F1",
+  PLDFT: "#F59E0B", Compliance: "#025382", Interno: "#6B7280", "Código de Ética": "#6366F1",
 };
 
 interface TrainingType { id: string; name: string; description: string | null; category: string; frequency: string; required: boolean; }
@@ -112,7 +112,7 @@ export default function TreinamentosPage() {
   const vencidos = summaryData.filter((s) => s.label === "Vencido").length;
 
   const summaryCards = [
-    { label: "Treinamentos obrigatórios", value: types.length, icon: GraduationCap, color: "#0F334D", bg: "#EBF5FA" },
+    { label: "Treinamentos obrigatórios", value: types.length, icon: GraduationCap, color: "#025382", bg: "#F2F2F2" },
     { label: "Em dia", value: emDia, icon: CheckCircle2, color: "#16A34A", bg: "#F0FDF4" },
     { label: "Vencendo em 30 dias", value: vencendo, icon: Clock, color: "#F59E0B", bg: "#FFFBEB" },
     { label: "Vencidos", value: vencidos, icon: AlertTriangle, color: "#DC2626", bg: "#FEF2F2" },
@@ -122,10 +122,10 @@ export default function TreinamentosPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#111827" }}>Treinamentos</h1>
+          <h1 className="text-2xl font-bold" style={{ color: "#033244" }}>Treinamentos</h1>
           <p className="text-sm text-gray-500">Controle de treinamentos das Pessoas Supervisionadas</p>
         </div>
-        <Button onClick={() => setShowNewType(true)} className="text-white" style={{ backgroundColor: "#0F334D" }}>
+        <Button onClick={() => setShowNewType(true)} className="text-white" style={{ backgroundColor: "#025382" }}>
           <Plus className="w-4 h-4 mr-2" />Novo treinamento
         </Button>
       </div>
@@ -279,7 +279,7 @@ export default function TreinamentosPage() {
               <label className="text-xs font-medium text-gray-600 mb-1 block">Notas</label>
               <textarea value={registerNotes} onChange={(e) => setRegisterNotes(e.target.value)} placeholder="Ex: Treinamento presencial sobre PLDFT" className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm min-h-[60px] resize-none" />
             </div>
-            <Button type="submit" disabled={loading} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+            <Button type="submit" disabled={loading} className="w-full text-white" style={{ backgroundColor: "#025382" }}>
               {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando...</> : "Salvar"}
             </Button>
           </form>
@@ -315,7 +315,7 @@ export default function TreinamentosPage() {
                 </select>
               </div>
             </div>
-            <Button type="submit" disabled={loading || !newTypeName} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+            <Button type="submit" disabled={loading || !newTypeName} className="w-full text-white" style={{ backgroundColor: "#025382" }}>
               {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Criando...</> : "Criar treinamento"}
             </Button>
           </form>

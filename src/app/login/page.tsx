@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-sm p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold" style={{ color: '#0F334D' }}>Legal Noon</h1>
+          <h1 className="text-2xl font-bold"><span style={{ color: '#033244' }}>Legal </span><span style={{ color: '#D2BD80' }}>Noon</span></h1>
           <p className="text-xs text-gray-400 mt-1">Noon Capital Partners</p>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
@@ -50,12 +50,12 @@ export default function LoginPage() {
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button type="submit" className="w-full" style={{ backgroundColor: '#1E7FA8' }} disabled={loading}>
+          <Button type="submit" className="w-full" style={{ backgroundColor: '#025382' }} disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
         <div className="mt-4 text-center">
-          <Link href="/auth/forgot-password" className="text-sm text-gray-500 hover:text-gray-700">Esqueci minha senha</Link>
+          <Link href="/auth/forgot-password" className="text-sm hover:underline" style={{ color: '#008FD0' }}>Esqueci minha senha</Link>
         </div>
       </Card>
     </div>

@@ -26,23 +26,11 @@ export function Sidebar() {
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       setUserEmail(user.email || null)
-
-      const { data: invited } = await supabase
-        .from('invited_users')
-        .select('name')
-        .eq('email', user.email)
-        .single()
-
+      const { data: invited } = await supabase.from('invited_users').select('name').eq('email', user.email).single()
       const name = invited?.name || user.user_metadata?.name || null
-      if (name) {
-        setUserName(name)
-        setUserInitial(name.charAt(0).toUpperCase())
-      } else if (user.email) {
-        setUserName(user.email)
-        setUserInitial(user.email.charAt(0).toUpperCase())
-      }
+      if (name) { setUserName(name); setUserInitial(name.charAt(0).toUpperCase()); }
+      else if (user.email) { setUserName(user.email); setUserInitial(user.email.charAt(0).toUpperCase()); }
     }
     loadUser()
   }, [])
@@ -54,44 +42,55 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[260px] flex flex-col" style={{ backgroundColor: '#0F334D' }}>
+    <aside className="fixed left-0 top-0 h-screen w-[260px] flex flex-col" style={{ backgroundColor: '#033244' }}>
+      {/* Logo */}
       <div className="p-6">
-        <h1 className="text-xl font-bold text-white">Legal Noon</h1>
-        <p className="text-xs mt-1" style={{ color: '#8CB8D4' }}>Noon Capital Partners</p>
+        <h1 className="text-xl font-bold">
+          <span className="text-white">Legal </span>
+          <span style={{ color: '#D2BD80' }}>Noon</span>
+        </h1>
+        <p className="text-xs mt-1" style={{ color: '#B2C7D6' }}>Noon Capital Partners</p>
       </div>
+
+      {/* Gold divider */}
+      <div className="mx-5 mb-2" style={{ height: '1px', backgroundColor: '#D2BD80', opacity: 0.3 }} />
+
+      {/* Navigation */}
       <nav className="flex-1 px-3">
         {nav.map(item => {
           const active = pathname === item.href
           return (
             <Link key={item.href} href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm transition-colors ${
-                active
-                  ? 'font-semibold text-white border-l-3'
-                  : 'font-medium hover:text-white'
+                active ? 'font-semibold' : 'font-medium'
               }`}
               style={
                 active
-                  ? { backgroundColor: '#1A4D6E', borderLeft: '3px solid #8CB8D4' }
+                  ? { backgroundColor: '#025382', borderLeft: '3px solid #D2BD80' }
                   : {}
               }>
-              <item.icon className="w-5 h-5" style={{ color: active ? '#FFFFFF' : '#8CB8D4' }} />
-              <span style={{ color: active ? '#FFFFFF' : '#B8D4E8' }}>{item.label}</span>
+              <item.icon className="w-5 h-5" style={{ color: active ? '#D2BD80' : '#B2C7D6' }} />
+              <span style={{ color: active ? '#FFFFFF' : '#B2C7D6' }}>{item.label}</span>
             </Link>
           )
         })}
       </nav>
+
+      {/* User footer */}
       <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#1A4D6E', color: '#FFFFFF' }}>{userInitial}</div>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#025382', color: '#FFFFFF' }}>{userInitial}</div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-white truncate">{userName || 'Carregando...'}</p>
-            {userEmail && <p className="text-xs truncate" style={{ color: '#8CB8D4' }}>{userEmail}</p>}
+            {userEmail && <p className="text-xs truncate" style={{ color: '#B2C7D6' }}>{userEmail}</p>}
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-sm w-full px-1 py-1.5 rounded transition-colors hover:text-white"
-          style={{ color: '#B8D4E8' }}
+          className="flex items-center gap-2 text-sm w-full px-1 py-1.5 rounded transition-colors"
+          style={{ color: '#B2C7D6' }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#D2BD80'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#B2C7D6'}
         >
           <LogOut className="w-4 h-4" />
           Sair

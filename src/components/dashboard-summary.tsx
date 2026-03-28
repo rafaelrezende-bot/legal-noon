@@ -11,7 +11,7 @@ interface Props {
 
 export function DashboardSummary({ totalMonth, overdue, next7Days, completedMonth }: Props) {
   const cards = [
-    { label: 'Obrigações do mês', value: totalMonth, icon: CalendarDays, color: '#0F334D', bg: '#EBF5FA' },
+    { label: 'Obrigações do mês', value: totalMonth, icon: CalendarDays, color: '#025382', bg: '#F2F2F2' },
     { label: 'Atrasadas', value: overdue, icon: AlertTriangle, color: '#DC2626', bg: '#FEF2F2' },
     { label: 'Próximos 7 dias', value: next7Days, icon: Clock, color: '#F59E0B', bg: '#FFFBEB' },
     { label: 'Concluídas no mês', value: completedMonth, icon: CheckCircle2, color: '#16A34A', bg: '#F0FDF4' },

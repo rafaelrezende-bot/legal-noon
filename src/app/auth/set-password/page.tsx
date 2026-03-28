@@ -45,7 +45,7 @@ export default function SetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-sm p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold" style={{ color: '#0F334D' }}>Legal Noon</h1>
+          <h1 className="text-2xl font-bold"><span style={{ color: '#033244' }}>Legal </span><span style={{ color: '#D2BD80' }}>Noon</span></h1>
           <p className="text-sm text-gray-500 mt-2">Crie sua senha para acessar</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -58,7 +58,7 @@ export default function SetPasswordPage() {
             <Input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repita a senha" required />
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button type="submit" className="w-full" style={{ backgroundColor: '#1E7FA8' }} disabled={loading}>
+          <Button type="submit" className="w-full" style={{ backgroundColor: '#025382' }} disabled={loading}>
             {loading ? 'Salvando...' : 'Criar senha e entrar'}
           </Button>
         </form>

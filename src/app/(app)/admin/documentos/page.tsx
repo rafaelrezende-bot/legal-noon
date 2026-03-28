@@ -55,7 +55,7 @@ interface Suggestion {
 }
 
 const categoryColors: Record<string, string> = {
-  CVM: "#1E7FA8",
+  CVM: "#025382",
   ANBIMA: "#6366F1",
   PLDFT: "#F59E0B",
   Interno: "#6B7280",
@@ -229,10 +229,10 @@ export default function DocumentosPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#111827" }}>Documentos</h1>
+          <h1 className="text-2xl font-bold" style={{ color: "#033244" }}>Documentos</h1>
           <p className="text-sm text-gray-500">Políticas e regulamentos da Noon Capital</p>
         </div>
-        <Button onClick={() => setShowUpload(true)} className="text-white" style={{ backgroundColor: "#0F334D" }}>
+        <Button onClick={() => setShowUpload(true)} className="text-white" style={{ backgroundColor: "#025382" }}>
           <Upload className="w-4 h-4 mr-2" />
           Novo documento
         </Button>
@@ -245,7 +245,7 @@ export default function DocumentosPage() {
         const proximas = statuses.filter((s) => s.status === "proxima").length;
         const emDia = statuses.filter((s) => s.status === "em_dia").length;
         const summaryCards = [
-          { label: "Total de políticas", value: documents.length, icon: FileText, color: "#0F334D", bg: "#EBF5FA" },
+          { label: "Total de políticas", value: documents.length, icon: FileText, color: "#025382", bg: "#F2F2F2" },
           { label: "Revisão atrasada", value: atrasadas, icon: AlertTriangle, color: "#DC2626", bg: "#FEF2F2" },
           { label: "Revisão próxima", value: proximas, icon: Clock, color: "#F59E0B", bg: "#FFFBEB" },
           { label: "Em dia", value: emDia, icon: CheckCircle2, color: "#16A34A", bg: "#F0FDF4" },
@@ -415,7 +415,7 @@ export default function DocumentosPage() {
                 )}
               </div>
             </div>
-            <Button type="submit" disabled={uploading || !uploadFile || !uploadName} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+            <Button type="submit" disabled={uploading || !uploadFile || !uploadName} className="w-full text-white" style={{ backgroundColor: "#025382" }}>
               {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Enviando...</> : "Enviar documento"}
             </Button>
           </form>
@@ -472,7 +472,7 @@ export default function DocumentosPage() {
                 onClick={handleAddObligations}
                 disabled={addingObligations || suggestions.filter((s) => s.selected).length === 0}
                 className="text-white"
-                style={{ backgroundColor: "#0F334D" }}
+                style={{ backgroundColor: "#025382" }}
               >
                 {addingObligations ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adicionando...</> : `Adicionar ${suggestions.filter((s) => s.selected).length} ao calendário`}
               </Button>
@@ -515,7 +515,7 @@ export default function DocumentosPage() {
                   onClick={handleReview}
                   disabled={submittingReview}
                   className="w-full text-white"
-                  style={{ backgroundColor: "#0F334D" }}
+                  style={{ backgroundColor: "#025382" }}
                 >
                   {submittingReview ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Registrando...</> : "Confirmar revisão"}
                 </Button>

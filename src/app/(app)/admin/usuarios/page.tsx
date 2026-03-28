@@ -179,7 +179,7 @@ export default function UsuariosPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-1" style={{ color: "#111827" }}>
+      <h1 className="text-2xl font-bold mb-1" style={{ color: "#033244" }}>
         Usuários e Pessoas
       </h1>
       <p className="text-sm text-gray-500 mb-4">
@@ -188,10 +188,10 @@ export default function UsuariosPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
-        <button onClick={() => setActiveTab("users")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "users" ? "border-[#0F334D] text-[#0F334D]" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+        <button onClick={() => setActiveTab("users")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "users" ? "border-[#025382] text-[#025382]" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
           <Users className="w-4 h-4" />Usuários do sistema
         </button>
-        <button onClick={() => setActiveTab("persons")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "persons" ? "border-[#0F334D] text-[#0F334D]" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
+        <button onClick={() => setActiveTab("persons")} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === "persons" ? "border-[#025382] text-[#025382]" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
           <UserCheck className="w-4 h-4" />Pessoas Supervisionadas
         </button>
       </div>
@@ -199,7 +199,7 @@ export default function UsuariosPage() {
       {activeTab === "users" && (<>
       {/* Invite form */}
       <Card className="p-6 bg-white rounded-xl shadow-sm border-gray-200 mb-8">
-        <h2 className="text-base font-semibold mb-4" style={{ color: "#0F334D" }}>
+        <h2 className="text-base font-semibold mb-4" style={{ color: "#025382" }}>
           Enviar convite
         </h2>
         <form onSubmit={handleInvite}>
@@ -233,7 +233,7 @@ export default function UsuariosPage() {
             type="submit"
             disabled={loading}
             className="text-white"
-            style={{ backgroundColor: "#0F334D" }}
+            style={{ backgroundColor: "#025382" }}
           >
             {loading ? (
               "Enviando..."
@@ -250,7 +250,7 @@ export default function UsuariosPage() {
       {/* Users table */}
       <Card className="bg-white rounded-xl shadow-sm border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold" style={{ color: "#0F334D" }}>
+          <h2 className="text-base font-semibold" style={{ color: "#025382" }}>
             Usuários convidados
           </h2>
         </div>
@@ -326,7 +326,7 @@ export default function UsuariosPage() {
       {activeTab === "persons" && (<>
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-500">Sócios-diretores e profissionais supervisionados pela área de compliance.</p>
-          <Button onClick={() => { setPersonName(""); setPersonRole(""); setPersonEmail(""); setShowAddPerson(true); }} className="text-white" style={{ backgroundColor: "#0F334D" }}>
+          <Button onClick={() => { setPersonName(""); setPersonRole(""); setPersonEmail(""); setShowAddPerson(true); }} className="text-white" style={{ backgroundColor: "#025382" }}>
             <Plus className="w-4 h-4 mr-2" />Adicionar pessoa
           </Button>
         </div>
@@ -389,7 +389,7 @@ export default function UsuariosPage() {
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Email</label>
                 <Input type="email" value={personEmail} onChange={(e) => setPersonEmail(e.target.value)} placeholder="Opcional" />
               </div>
-              <Button type="submit" disabled={loading || !personName} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+              <Button type="submit" disabled={loading || !personName} className="w-full text-white" style={{ backgroundColor: "#025382" }}>
                 {loading ? "Salvando..." : "Salvar"}
               </Button>
             </form>
@@ -413,7 +413,7 @@ export default function UsuariosPage() {
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Email</label>
                 <Input type="email" value={personEmail} onChange={(e) => setPersonEmail(e.target.value)} />
               </div>
-              <Button type="submit" disabled={loading || !personName} className="w-full text-white" style={{ backgroundColor: "#0F334D" }}>
+              <Button type="submit" disabled={loading || !personName} className="w-full text-white" style={{ backgroundColor: "#025382" }}>
                 {loading ? "Salvando..." : "Salvar alterações"}
               </Button>
             </form>

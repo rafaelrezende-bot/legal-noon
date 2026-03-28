@@ -106,12 +106,12 @@ export function ChatPanel() {
         style={{ height: "70vh", maxHeight: "600px" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: '#0F334D' }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: '#033244' }}>
           <div>
             <h2 className="text-sm font-semibold text-white">
               Assistente Legal Noon
             </h2>
-            <p className="text-xs" style={{ color: '#8CB8D4' }}>
+            <p className="text-xs" style={{ color: '#B2C7D6' }}>
               Compliance regulatório brasileiro
             </p>
           </div>
@@ -130,7 +130,7 @@ export function ChatPanel() {
               <div className="text-center max-w-xs">
                 <div
                   className="w-10 h-10 rounded-full mx-auto mb-3 flex items-center justify-center"
-                  style={{ backgroundColor: "#EBF5FA" }}
+                  style={{ backgroundColor: "#F2F2F2" }}
                 >
                   <span className="text-base">⚖️</span>
                 </div>
@@ -146,7 +146,7 @@ export function ChatPanel() {
           ))}
           {loading && (
             <div className="flex justify-start mb-4">
-              <div className="bg-[#EBF5FA] rounded-2xl rounded-tl-md px-4 py-3 text-sm text-gray-500">
+              <div className="bg-[#F2F2F2] rounded-2xl rounded-tl-md px-4 py-3 text-sm text-gray-500">
                 Pensando<span className="animate-pulse">...</span>
               </div>
             </div>
@@ -173,7 +173,7 @@ export function ChatPanel() {
               type="submit"
               size="sm"
               disabled={loading || !input.trim()}
-              style={{ backgroundColor: "#1E7FA8" }}
+              style={{ backgroundColor: "#025382" }}
             >
               <Send className="w-4 h-4" />
             </Button>
@@ -185,7 +185,7 @@ export function ChatPanel() {
       <button
         onClick={() => setOpen(!open)}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white transition-transform duration-200 hover:scale-105 z-50"
-        style={{ backgroundColor: "#0F334D" }}
+        style={{ backgroundColor: "#025382", border: '1px solid #D2BD80' }}
         aria-label={open ? "Fechar chat" : "Abrir assistente"}
       >
         {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}

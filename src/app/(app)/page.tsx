@@ -149,7 +149,7 @@ export default function DashboardPage() {
   return (
     <div className="p-8">
       {/* Saudação + Cards de resumo */}
-      <h1 className="text-2xl font-bold mb-1" style={{ color: '#111827' }}>
+      <h1 className="text-2xl font-bold mb-1" style={{ color: '#033244' }}>
         {getGreeting()}{firstName ? `, ${firstName}` : ''}
       </h1>
       <p className="text-sm text-gray-500 mb-6">
@@ -166,12 +166,12 @@ export default function DashboardPage() {
       {/* Calendário mensal */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold" style={{ color: '#0F334D' }}>Obrigações do mês</h2>
+          <h2 className="text-lg font-semibold" style={{ color: '#025382' }}>Obrigações do mês</h2>
           <div className="flex items-center gap-3">
             <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100">
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
-            <span className="text-sm font-semibold min-w-[160px] text-center" style={{ color: '#0F334D' }}>
+            <span className="text-sm font-semibold min-w-[160px] text-center" style={{ color: '#025382' }}>
               {MONTHS[month]} {year}
             </span>
             <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100">

@@ -12,7 +12,7 @@ export function ChatBubble({ message }: Props) {
         isUser
           ? 'text-white rounded-2xl rounded-tr-md'
           : 'text-gray-800 rounded-2xl rounded-tl-md'
-      }`} style={{ backgroundColor: isUser ? '#0F334D' : '#EBF5FA' }}>
+      }`} style={{ backgroundColor: isUser ? '#025382' : '#F2F2F2' }}>
         {message.content}
         <div className={`text-[10px] mt-1.5 ${isUser ? 'text-white/50' : 'text-gray-400'}`}>
           {new Date(message.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
