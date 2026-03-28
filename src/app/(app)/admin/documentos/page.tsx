@@ -132,19 +132,11 @@ export default function DocumentosPage() {
     const formData = new FormData();
     formData.append("file", uploadFile);
     formData.append("name", uploadName);
-    formData.append("category", categories.find(c => c.id === uploadCategoryId)?.name || "Interno");
+    formData.append("category_id", uploadCategoryId);
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
       if (!res.ok) { const d = await res.json(); setMessage({ type: "error", text: d.error }); setUploading(false); return; }
       const { document: doc } = await res.json();
-      // Update category_id
-      if (uploadCategoryId) {
-        await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/policy_documents?id=eq.${doc.id}`, {
-          method: "PATCH",
-          headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`, "Content-Type": "application/json", Prefer: "return=minimal" },
-          body: JSON.stringify({ category_id: uploadCategoryId }),
-        });
-      }
       setShowUpload(false); setUploadName(""); setUploadFile(null);
       setMessage({ type: "success", text: `"${uploadName}" enviado. Analisando obrigações...` });
       fetchDocuments();

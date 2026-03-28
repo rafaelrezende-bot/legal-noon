@@ -9,9 +9,9 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const name = formData.get("name") as string;
-    const category = formData.get("category") as string;
+    const categoryId = formData.get("category_id") as string;
 
-    if (!file || !name || !category) {
+    if (!file || !name) {
       return NextResponse.json({ error: "Campos obrigatórios faltando." }, { status: 400 });
     }
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         filename: file.name,
-        category,
+        category_id: categoryId || null,
         content,
         pages,
         storage_path: storagePath,
