@@ -88,14 +88,10 @@ export default function DocumentosPage() {
     if (cats?.length > 0 && !uploadCategoryId) setUploadCategoryId(cats[0].id);
   }, []);
 
-  const fetchExtractedObs = useCallback(async (docId: string) => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const res = await fetch(`${supabaseUrl}/rest/v1/extracted_obligations?document_id=eq.${docId}&order=created_at.asc`, {
-      headers: { apikey: supabaseKey!, Authorization: `Bearer ${supabaseKey!}` },
-    });
-    const data = await res.json();
-    setExtractedObs(prev => ({ ...prev, [docId]: data || [] }));
+  const fetchDocObligations = useCallback(async (docId: string) => {
+    const res = await fetch(`/api/documents/obligations?documentId=${docId}`);
+    const { obligations: obs } = await res.json();
+    setExtractedObs(prev => ({ ...prev, [docId]: obs || [] }));
   }, []);
 
   useEffect(() => { fetchDocuments(); fetchCategories(); }, [fetchDocuments, fetchCategories]);
@@ -152,7 +148,7 @@ export default function DocumentosPage() {
         const { obligations } = await extRes.json();
         if (obligations?.length > 0) {
           setExpandedId(doc.id);
-          fetchExtractedObs(doc.id);
+          fetchDocObligations(doc.id);
         }
       }
     } catch { setMessage({ type: "error", text: "Erro no upload." }); }
@@ -171,7 +167,7 @@ export default function DocumentosPage() {
     const res = await fetch("/api/documents/extract-obligations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId: docId }) });
     setExtractingId(null);
     fetchDocuments();
-    if (res.ok) { fetchExtractedObs(docId); setExpandedId(docId); }
+    if (res.ok) { fetchDocObligations(docId); setExpandedId(docId); }
   };
 
   const handleInclude = async (eoId: string) => {
@@ -183,7 +179,7 @@ export default function DocumentosPage() {
     });
     if (res.ok) {
       setIncludingId(null); setIncludeDueDate("");
-      if (expandedId) fetchExtractedObs(expandedId);
+      if (expandedId) fetchDocObligations(expandedId);
       fetchDocuments();
       setMessage({ type: "success", text: "Obrigação incluída no calendário." });
     } else { setMessage({ type: "error", text: "Erro ao incluir." }); }
@@ -195,7 +191,16 @@ export default function DocumentosPage() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ extracted_obligation_id: eoId }),
     });
-    if (expandedId) fetchExtractedObs(expandedId);
+    if (expandedId) fetchDocObligations(expandedId);
+    fetchDocuments();
+  };
+
+  const handleRestore = async (eoId: string) => {
+    await fetch("/api/documents/restore-obligation", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extracted_obligation_id: eoId }),
+    });
+    if (expandedId) fetchDocObligations(expandedId);
     fetchDocuments();
   };
 
@@ -226,7 +231,7 @@ export default function DocumentosPage() {
   const handleExpandDoc = (docId: string) => {
     if (expandedId === docId) { setExpandedId(null); return; }
     setExpandedId(docId);
-    if (!extractedObs[docId]) fetchExtractedObs(docId);
+    if (!extractedObs[docId]) fetchDocObligations(docId);
   };
 
   // Summary
@@ -332,8 +337,103 @@ export default function DocumentosPage() {
 
                 {isExpanded && (
                   <div className="px-6 pb-4">
-                    {/* Actions bar */}
-                    <div className="flex gap-2 mb-3 ml-8">
+                    {/* Obligations table */}
+                    {obs.length > 0 ? (
+                      <div className="ml-8 mb-4">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-gray-100">
+                              <th className="text-left text-[10px] font-medium text-gray-500 uppercase py-2 pr-3">Obrigação</th>
+                              <th className="text-left text-[10px] font-medium text-gray-500 uppercase py-2 px-2">Freq.</th>
+                              <th className="text-left text-[10px] font-medium text-gray-500 uppercase py-2 px-2">Status</th>
+                              <th className="text-left text-[10px] font-medium text-gray-500 uppercase py-2 px-2">Venc.</th>
+                              <th className="text-left text-[10px] font-medium text-gray-500 uppercase py-2 pl-2">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {obs.map((eo: any) => {
+                              const statusBadge: Record<string, { label: string; color: string; bg: string }> = {
+                                pending: { label: "Não revisada", color: "#F59E0B", bg: "#FFFBEB" },
+                                atrasada: { label: "Atrasada", color: "#DC2626", bg: "#FEF2F2" },
+                                em_andamento: { label: "Em andamento", color: "#025382", bg: "#F2F2F2" },
+                                pendente: { label: "Pendente", color: "#6B7280", bg: "#F3F4F6" },
+                                concluida: { label: "Concluída", color: "#16A34A", bg: "#F0FDF4" },
+                                discarded: { label: "Descartada", color: "#9CA3AF", bg: "#F9FAFB" },
+                              };
+                              const sb = statusBadge[eo.display_status] || statusBadge.pendente;
+                              const isDiscarded = eo.display_status === "discarded";
+                              return (
+                                <React.Fragment key={eo.id}>
+                                  <tr className={`border-b border-gray-50 ${isDiscarded ? "opacity-50" : ""}`}>
+                                    <td className="py-2.5 pr-3">
+                                      <span className={`text-xs font-medium ${isDiscarded ? "line-through text-gray-400" : "text-gray-800"}`}>{eo.title}</span>
+                                      {eo.legal_basis && <span className="text-[10px] text-gray-400 block">{eo.legal_basis}</span>}
+                                    </td>
+                                    <td className="py-2.5 px-2">
+                                      <span className="text-[10px] text-gray-500 capitalize">{eo.frequency || "—"}</span>
+                                    </td>
+                                    <td className="py-2.5 px-2">
+                                      <Badge variant="secondary" className="text-[10px] rounded-full" style={{ backgroundColor: sb.bg, color: sb.color }}>{sb.label}</Badge>
+                                    </td>
+                                    <td className="py-2.5 px-2">
+                                      <span className="text-[10px] text-gray-500">{eo.due_date ? new Date(eo.due_date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—"}</span>
+                                    </td>
+                                    <td className="py-2.5 pl-2">
+                                      {eo.display_status === "pending" && (
+                                        <div className="flex gap-1">
+                                          <Button size="sm" className="text-[10px] text-white h-6 px-2" style={{ backgroundColor: "#025382" }}
+                                            onClick={() => { setIncludingId(eo.id); setIncludeDueDate(""); setIncludeCategoryId(""); }}>
+                                            Incluir
+                                          </Button>
+                                          <Button variant="ghost" size="sm" className="text-[10px] text-gray-400 h-6 px-2" onClick={() => handleDiscard(eo.id)}>Descartar</Button>
+                                        </div>
+                                      )}
+                                      {eo.display_status === "discarded" && (
+                                        <Button variant="ghost" size="sm" className="text-[10px] text-blue-500 h-6 px-2" onClick={() => handleRestore(eo.id)}>Restaurar</Button>
+                                      )}
+                                      {["atrasada", "em_andamento", "pendente", "concluida"].includes(eo.display_status) && (
+                                        <span className="text-[10px] text-gray-400">No calendário</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                  {/* Include form row */}
+                                  {includingId === eo.id && (
+                                    <tr><td colSpan={5} className="py-2">
+                                      <div className="p-3 bg-gray-50 rounded-lg space-y-2 ml-2">
+                                        <div className="flex gap-2">
+                                          <div className="flex-1">
+                                            <label className="text-[10px] font-medium text-gray-500 block mb-1">Data de entrega *</label>
+                                            <Input type="date" value={includeDueDate} onChange={e => setIncludeDueDate(e.target.value)} className="text-xs h-8" />
+                                          </div>
+                                          <div className="flex-1">
+                                            <label className="text-[10px] font-medium text-gray-500 block mb-1">Categoria</label>
+                                            <select value={includeCategoryId} onChange={e => setIncludeCategoryId(e.target.value)} className="w-full rounded-md border border-gray-200 px-2 py-1 text-xs h-8">
+                                              <option value="">Auto (sugestão da IA)</option>
+                                              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button size="sm" className="text-xs text-white h-7" style={{ backgroundColor: "#025382" }} disabled={!includeDueDate || loading} onClick={() => handleInclude(eo.id)}>
+                                            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Confirmar"}
+                                          </Button>
+                                          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setIncludingId(null)}>Cancelar</Button>
+                                        </div>
+                                      </div>
+                                    </td></tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : doc.extraction_status === "done" ? (
+                      <p className="text-xs text-gray-400 ml-8 mb-4">Nenhuma obrigação identificada neste documento.</p>
+                    ) : null}
+
+                    {/* Document actions — below table */}
+                    <div className="flex gap-2 ml-8 pt-3 border-t border-gray-100">
                       {doc.storage_path && (
                         <a href={`/api/documents/${doc.id}/download`} target="_blank" rel="noreferrer">
                           <Button variant="outline" size="sm" className="text-xs"><Download className="w-3.5 h-3.5 mr-1" />Baixar PDF</Button>
@@ -349,71 +449,6 @@ export default function DocumentosPage() {
                         <Trash2 className="w-3.5 h-3.5 mr-1" />Excluir
                       </Button>
                     </div>
-
-                    {/* Extracted obligations */}
-                    {obs.length > 0 && (
-                      <div className="ml-8 space-y-2">
-                        <p className="text-xs font-medium text-gray-500 uppercase mb-2">Obrigações extraídas</p>
-                        {obs.map(eo => (
-                          <div key={eo.id} className={`p-3 rounded-lg border ${eo.status === "included" ? "bg-green-50/50 border-green-200" : eo.status === "discarded" ? "bg-gray-50 border-gray-200 opacity-50" : "bg-white border-gray-200"}`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  {eo.status === "included" && <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />}
-                                  {eo.status === "discarded" && <XCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
-                                  <span className={`text-sm font-medium ${eo.status === "discarded" ? "line-through text-gray-400" : "text-gray-800"}`}>{eo.title}</span>
-                                </div>
-                                {eo.description && <p className="text-xs text-gray-500 line-clamp-2 ml-5">{eo.description}</p>}
-                                <div className="flex items-center gap-2 mt-1 ml-5">
-                                  {eo.legal_basis && <span className="text-[10px] text-gray-400">{eo.legal_basis}</span>}
-                                  {eo.frequency && <Badge variant="secondary" className="text-[10px] rounded-full bg-gray-100 text-gray-500">{eo.frequency}</Badge>}
-                                  {eo.suggested_category && <Badge variant="secondary" className="text-[10px] rounded-full bg-gray-100 text-gray-500">{eo.suggested_category}</Badge>}
-                                </div>
-                              </div>
-                              {eo.status === "pending" && (
-                                <div className="flex gap-1 shrink-0">
-                                  <Button size="sm" className="text-xs text-white h-7" style={{ backgroundColor: "#025382" }}
-                                    onClick={() => { setIncludingId(eo.id); setIncludeDueDate(""); setIncludeCategoryId(""); }}>
-                                    Incluir
-                                  </Button>
-                                  <Button variant="ghost" size="sm" className="text-xs text-gray-400 h-7" onClick={() => handleDiscard(eo.id)}>Descartar</Button>
-                                </div>
-                              )}
-                              {eo.status === "included" && <span className="text-[10px] text-green-600 font-medium shrink-0">INCLUÍDA</span>}
-                              {eo.status === "discarded" && <span className="text-[10px] text-gray-400 font-medium shrink-0">DESCARTADA</span>}
-                            </div>
-
-                            {/* Include form */}
-                            {includingId === eo.id && (
-                              <div className="mt-3 ml-5 p-3 bg-gray-50 rounded-lg space-y-2">
-                                <div className="flex gap-2">
-                                  <div className="flex-1">
-                                    <label className="text-[10px] font-medium text-gray-500 block mb-1">Data de entrega *</label>
-                                    <Input type="date" value={includeDueDate} onChange={e => setIncludeDueDate(e.target.value)} className="text-xs h-8" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <label className="text-[10px] font-medium text-gray-500 block mb-1">Categoria</label>
-                                    <select value={includeCategoryId} onChange={e => setIncludeCategoryId(e.target.value)} className="w-full rounded-md border border-gray-200 px-2 py-1 text-xs h-8">
-                                      <option value="">Auto (sugestão da IA)</option>
-                                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button size="sm" className="text-xs text-white h-7" style={{ backgroundColor: "#025382" }} disabled={!includeDueDate || loading} onClick={() => handleInclude(eo.id)}>
-                                    {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Confirmar inclusão"}
-                                  </Button>
-                                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setIncludingId(null)}>Cancelar</Button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {obs.length === 0 && doc.extraction_status === "done" && (
-                      <p className="text-xs text-gray-400 ml-8">Nenhuma obrigação identificada neste documento.</p>
-                    )}
                   </div>
                 )}
               </div>
