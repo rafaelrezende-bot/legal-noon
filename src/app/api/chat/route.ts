@@ -2,81 +2,75 @@ import { NextRequest, NextResponse } from "next/server";
 import { anthropic, SYSTEM_PROMPT } from "@/lib/anthropic";
 import { toolDefinitions, executeTool } from "@/lib/chat-tools";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { searchRelevantChunks } from "@/lib/rag-search";
 
 async function buildSystemPrompt(userMessage: string): Promise<string> {
   try {
     const supabase = createAdminClient();
+    const { data: documents } = await supabase.from("policy_documents").select("name").order("name");
+    const documentList = (documents || []).map((d) => `- ${d.name}`).join("\n");
 
-    // Get document list (names only, no content)
-    const { data: documents } = await supabase
-      .from("policy_documents")
-      .select("name, category")
-      .order("name");
-
-    const documentList = (documents || [])
-      .map((d) => `- ${d.name} (${d.category || "Geral"})`)
-      .join("\n");
-
-    // RAG: search relevant chunks for the user's question
     let ragContext = "Nenhum trecho relevante encontrado nos documentos.";
     try {
-      const relevantChunks = await searchRelevantChunks(userMessage, supabase, {
-        matchThreshold: 0.65,
-        matchCount: 8,
-      });
-
-      if (relevantChunks.length > 0) {
-        ragContext = relevantChunks
-          .map((chunk) => `[Fonte: ${chunk.documentName}]\n${chunk.content}`)
-          .join("\n\n---\n\n");
-      }
-    } catch (ragError) {
-      console.error("RAG search failed, continuing without context:", ragError);
-    }
+      const chunks = await searchRelevantChunks(userMessage, supabase, { matchThreshold: 0.65, matchCount: 8 });
+      if (chunks.length > 0) ragContext = chunks.map((c) => `[Fonte: ${c.documentName}]\n${c.content}`).join("\n\n---\n\n");
+    } catch {}
 
     return `${SYSTEM_PROMPT}
 
-## Documentos disponíveis no sistema
+## Documentos disponíveis
 ${documentList}
 
-## Trechos relevantes dos documentos (recuperados por similaridade)
-Os trechos abaixo foram selecionados automaticamente com base na pergunta do usuário.
-Use-os para fundamentar suas respostas. Sempre cite o documento fonte.
-
+## Trechos relevantes (RAG)
 ${ragContext}
 
 ## Regras adicionais
-- Cite o documento fonte quando usar informações dos trechos acima
-- Se a informação não estiver nos trechos fornecidos, diga que não encontrou nos documentos e sugira consultar o documento diretamente
-- Use as tools disponíveis para consultar e atualizar dados do sistema
-- Seja preciso com prazos, datas e obrigações`;
-  } catch {
-    return SYSTEM_PROMPT;
-  }
+- Cite o documento fonte quando usar informações dos trechos
+- Se não encontrou nos documentos, diga claramente
+- Use as tools para consultar e atualizar dados do sistema`;
+  } catch { return SYSTEM_PROMPT; }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, history } = await request.json();
-
+    const { message } = await request.json();
     if (!message || typeof message !== "string") {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    }
+
+    // Get authenticated user
+    const supabaseAuth = await createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+    const userId = user?.id;
+
+    const supabase = createAdminClient();
+
+    // Save user message
+    if (userId) {
+      await supabase.from("chat_messages").insert({ user_id: userId, role: "user", content: message });
+    }
+
+    // Load recent history from DB (last 20 messages)
+    let history: { role: string; content: string }[] = [];
+    if (userId) {
+      const { data: dbHistory } = await supabase
+        .from("chat_messages")
+        .select("role, content")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(20);
+      history = dbHistory || [];
     }
 
     const systemPrompt = await buildSystemPrompt(message);
 
-    const messages: { role: "user" | "assistant"; content: any }[] = [
-      ...(history || []).map((m: { role: string; content: string }) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-      { role: "user" as const, content: message },
-    ];
+    const messages: { role: "user" | "assistant"; content: any }[] = history.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
 
+    // Tool use loop
     let maxIterations = 5;
     while (maxIterations > 0) {
       maxIterations--;
@@ -90,53 +84,37 @@ export async function POST(request: NextRequest) {
       });
 
       if (response.stop_reason === "end_turn") {
-        const text = response.content
-          .filter((b) => b.type === "text")
-          .map((b) => (b as { type: "text"; text: string }).text)
-          .join("");
+        const text = response.content.filter((b) => b.type === "text").map((b) => (b as any).text).join("");
+
+        // Save assistant response
+        if (userId) {
+          await supabase.from("chat_messages").insert({ user_id: userId, role: "assistant", content: text });
+        }
+
         return NextResponse.json({ response: text });
       }
 
       if (response.stop_reason === "tool_use") {
         messages.push({ role: "assistant", content: response.content });
-
         const toolResults = [];
         for (const block of response.content) {
           if (block.type === "tool_use") {
-            const result = await executeTool(
-              block.name,
-              block.input as Record<string, any>
-            );
-            toolResults.push({
-              type: "tool_result" as const,
-              tool_use_id: block.id,
-              content: result,
-            });
+            const result = await executeTool(block.name, block.input as Record<string, any>);
+            toolResults.push({ type: "tool_result" as const, tool_use_id: block.id, content: result });
           }
         }
-
         messages.push({ role: "user", content: toolResults });
         continue;
       }
 
-      const text = response.content
-        .filter((b) => b.type === "text")
-        .map((b) => (b as { type: "text"; text: string }).text)
-        .join("");
-      return NextResponse.json({
-        response: text || "Não consegui processar a solicitação.",
-      });
+      const text = response.content.filter((b) => b.type === "text").map((b) => (b as any).text).join("");
+      if (userId) await supabase.from("chat_messages").insert({ user_id: userId, role: "assistant", content: text || "Não consegui processar." });
+      return NextResponse.json({ response: text || "Não consegui processar a solicitação." });
     }
 
-    return NextResponse.json({
-      response:
-        "Desculpe, a consulta ficou complexa demais. Tente simplificar sua pergunta.",
-    });
+    return NextResponse.json({ response: "Desculpe, a consulta ficou complexa demais." });
   } catch (error: any) {
     console.error("Chat API error:", error?.message || error);
-    return NextResponse.json(
-      { error: "Failed to get response" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to get response" }, { status: 500 });
   }
 }
