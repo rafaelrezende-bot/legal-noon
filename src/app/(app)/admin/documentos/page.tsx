@@ -13,6 +13,7 @@ import {
   ClipboardCheck, AlertTriangle, Clock, CheckCircle2,
   ChevronRight, Check, XCircle, RotateCcw, Settings, Plus,
 } from "lucide-react";
+import { useUserRole } from "@/hooks/use-user-role";
 
 interface Category { id: string; name: string; slug: string; color: string; }
 interface ExtractedObligation {
@@ -39,8 +40,11 @@ function getReviewStatus(d: string | null) {
 type SortOption = "name_asc" | "name_desc" | "upload_desc" | "upload_asc" | "review_oldest";
 
 export default function DocumentosPage() {
+  const { isAdmin } = useUserRole();
   const [documents, setDocuments] = useState<PolicyDocument[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isCreatingUploadCat, setIsCreatingUploadCat] = useState(false);
+  const [newUploadCatName, setNewUploadCatName] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("name_asc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -471,9 +475,37 @@ export default function DocumentosPage() {
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Categoria</label>
-              <select value={uploadCategoryId} onChange={e => setUploadCategoryId(e.target.value)} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm">
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              {isCreatingUploadCat ? (
+                <div className="flex items-center gap-2">
+                  <Input value={newUploadCatName} onChange={e => setNewUploadCatName(e.target.value)} placeholder="Nome da nova categoria" className="flex-1 text-sm" autoFocus />
+                  <Button type="button" size="icon" variant="ghost" className="text-green-600 hover:text-green-700 hover:bg-green-50 shrink-0"
+                    disabled={!newUploadCatName.trim()}
+                    onClick={async () => {
+                      const res = await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newUploadCatName.trim(), color: "#025382" }) });
+                      if (res.ok) {
+                        const { category: newCat } = await res.json();
+                        await fetchCategories();
+                        setUploadCategoryId(newCat.id);
+                        setIsCreatingUploadCat(false);
+                        setNewUploadCatName("");
+                      }
+                    }}>
+                    <Check className="w-4 h-4" />
+                  </Button>
+                  <Button type="button" size="icon" variant="ghost" className="text-gray-400 hover:text-gray-600 shrink-0"
+                    onClick={() => { setIsCreatingUploadCat(false); setNewUploadCatName(""); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <select value={uploadCategoryId} onChange={e => {
+                  if (e.target.value === "__new__") { setIsCreatingUploadCat(true); }
+                  else setUploadCategoryId(e.target.value);
+                }} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm">
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {isAdmin && <option value="__new__">+ Nova categoria</option>}
+                </select>
+              )}
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Arquivo PDF</label>
