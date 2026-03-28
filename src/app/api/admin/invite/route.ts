@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://legal-noon.vercel.app";
     const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: { name },
       redirectTo: `${siteUrl}/auth/callback?type=invite`,
     });
 

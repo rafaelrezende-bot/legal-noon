@@ -1,7 +1,9 @@
 "use client"
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Users } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const nav = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -10,6 +12,30 @@ const nav = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const [userName, setUserName] = useState<string | null>(null)
+  const [userInitial, setUserInitial] = useState('U')
+
+  useEffect(() => {
+    async function loadUser() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: invited } = await supabase
+        .from('invited_users')
+        .select('name')
+        .eq('email', user.email)
+        .single()
+
+      const name = invited?.name || user.user_metadata?.name || user.email || null
+      if (name) {
+        setUserName(name)
+        setUserInitial(name.charAt(0).toUpperCase())
+      }
+    }
+    loadUser()
+  }, [])
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-[260px] flex flex-col" style={{ backgroundColor: '#0F334D' }}>
       <div className="p-6">
@@ -39,9 +65,9 @@ export function Sidebar() {
       </nav>
       <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#1A4D6E', color: '#FFFFFF' }}>T</div>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#1A4D6E', color: '#FFFFFF' }}>{userInitial}</div>
           <div>
-            <p className="text-sm font-medium text-white">Tereza Cidade</p>
+            <p className="text-sm font-medium text-white">{userName || 'Carregando...'}</p>
             <p className="text-xs" style={{ color: '#8CB8D4' }}>Compliance</p>
           </div>
         </div>

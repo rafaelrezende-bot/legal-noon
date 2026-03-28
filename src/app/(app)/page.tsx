@@ -36,8 +36,27 @@ export default function DashboardPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
 
   const supabase = createClient();
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Try invited_users table first
+      const { data: invited } = await supabase
+        .from("invited_users")
+        .select("name")
+        .eq("email", user.email)
+        .single();
+
+      const fullName = invited?.name || user.user_metadata?.name || null;
+      if (fullName) setFirstName(fullName.split(" ")[0]);
+    }
+    loadUser();
+  }, []);
   const today = new Date().toISOString().split("T")[0];
   const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
@@ -131,7 +150,7 @@ export default function DashboardPage() {
     <div className="p-8">
       {/* Saudação + Cards de resumo */}
       <h1 className="text-2xl font-bold mb-1" style={{ color: '#111827' }}>
-        {getGreeting()}, Tereza
+        {getGreeting()}{firstName ? `, ${firstName}` : ''}
       </h1>
       <p className="text-sm text-gray-500 mb-6">
         Aqui está o resumo das suas obrigações regulatórias.
