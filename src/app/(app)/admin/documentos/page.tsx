@@ -503,12 +503,18 @@ export default function DocumentosPage() {
               </div>
             ))}
             <div className="pt-3 border-t border-gray-100">
-              <form onSubmit={handleCreateCategory} className="flex gap-2">
-                <Input value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Nova categoria" className="text-sm flex-1" />
-                <select value={newCatColor} onChange={e => setNewCatColor(e.target.value)} className="rounded-md border border-gray-200 px-2 text-xs">
-                  {COLORS_PALETTE.map(c => <option key={c} value={c} style={{ color: c }}>{c}</option>)}
-                </select>
-                <Button type="submit" size="sm" disabled={!newCatName || loading} style={{ backgroundColor: "#025382" }} className="text-white"><Plus className="w-4 h-4" /></Button>
+              <form onSubmit={handleCreateCategory} className="space-y-2">
+                <div className="flex gap-2">
+                  <Input value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Nova categoria" className="text-sm flex-1" />
+                  <Button type="submit" size="sm" disabled={!newCatName || loading} style={{ backgroundColor: "#025382" }} className="text-white"><Plus className="w-4 h-4" /></Button>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {COLORS_PALETTE.map(c => (
+                    <button key={c} type="button" onClick={() => setNewCatColor(c)}
+                      className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                      style={{ backgroundColor: c, borderColor: newCatColor === c ? "#111" : "transparent" }} />
+                  ))}
+                </div>
               </form>
             </div>
           </div>
