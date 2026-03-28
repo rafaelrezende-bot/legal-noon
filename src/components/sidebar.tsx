@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FileText, GraduationCap, Briefcase, Users, LogOut } from 'lucide-react'
+import { CalendarDays, FileText, GraduationCap, Briefcase, Users, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserRole } from '@/hooks/use-user-role'
 
 const baseNav = [
-  { label: 'Dashboard', href: '/', icon: LayoutDashboard, adminOnly: false },
+  { label: 'Calendário', href: '/', icon: CalendarDays, adminOnly: false },
   { label: 'Documentos', href: '/admin/documentos', icon: FileText, adminOnly: false },
   { label: 'Treinamentos', href: '/treinamentos', icon: GraduationCap, adminOnly: false },
   { label: 'Invest. Pessoais', href: '/investimentos-pessoais', icon: Briefcase, adminOnly: false },
