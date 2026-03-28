@@ -1,10 +1,11 @@
 "use client"
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard, Users } from 'lucide-react'
 
 const nav = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { label: 'Usuários', href: '/admin/usuarios', icon: Users },
 ]
 
 export function Sidebar() {
