@@ -1,13 +1,23 @@
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
-
-// Disable worker for server-side usage
-GlobalWorkerOptions.workerSrc = "";
-
 export async function extractTextFromPDF(
   buffer: Buffer
 ): Promise<{ text: string; pages: number }> {
+  // Use dynamic import to avoid worker issues in serverless
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+
+  // Point workerSrc to the actual worker file to avoid fake worker error
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/legacy/build/pdf.worker.mjs",
+    import.meta.url
+  ).toString();
+
   const data = new Uint8Array(buffer);
-  const doc = await getDocument({ data, useSystemFonts: true }).promise;
+  const doc = await pdfjsLib.getDocument({
+    data,
+    useSystemFonts: true,
+    isEvalSupported: false,
+    disableFontFace: true,
+  }).promise;
+
   const numPages = doc.numPages;
   const textParts: string[] = [];
 
