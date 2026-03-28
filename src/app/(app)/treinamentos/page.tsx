@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { GraduationCap, Plus, AlertTriangle, Clock, CheckCircle2, Loader2, ChevronRight } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface SupervisedPerson { id: string; name: string; role: string | null; }
 
@@ -254,7 +255,7 @@ export default function TreinamentosPage() {
               );
             })}
             {types.length === 0 && (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">Nenhum treinamento cadastrado.</td></tr>
+              <tr><td colSpan={5}><EmptyState icon={GraduationCap} title="Nenhum treinamento cadastrado" description="Cadastre tipos de treinamento para acompanhar a conformidade da equipe." /></td></tr>
             )}
           </tbody>
         </table>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Briefcase, Plus, CheckCircle2, AlertTriangle, MinusCircle, Loader2, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Period {
   id: string; type: string; reference_label: string; due_date: string; year: number; quarter: number | null;
@@ -152,6 +153,10 @@ export default function InvestimentosPessoaisPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {!currentPeriod && (
+        <EmptyState icon={Briefcase} title="Nenhum período de declaração" description="Crie um período de declaração para começar a receber os relatórios de investimentos pessoais." actionLabel="Criar Período" onAction={() => setShowNewPeriod(true)} />
       )}
 
       {/* Current period table */}

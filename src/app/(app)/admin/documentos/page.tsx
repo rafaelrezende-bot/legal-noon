@@ -14,6 +14,8 @@ import {
   ChevronRight, Check, XCircle, RotateCcw, Settings, Plus,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/use-user-role";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Category { id: string; name: string; slug: string; color: string; }
 interface ExtractedObligation {
@@ -75,6 +77,7 @@ export default function DocumentosPage() {
   const [includeDueDate, setIncludeDueDate] = useState("");
   const [includeCategoryId, setIncludeCategoryId] = useState("");
 
+  const [deleteTarget, setDeleteTarget] = useState<{id:string,name:string}|null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [extractingId, setExtractingId] = useState<string | null>(null);
@@ -159,10 +162,8 @@ export default function DocumentosPage() {
     finally { setUploading(false); }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Excluir "${name}"?`)) return;
-    const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
-    if (res.ok) { setMessage({ type: "success", text: `"${name}" excluído.` }); fetchDocuments(); }
+  const handleDelete = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
   };
 
   const handleReanalyze = async (docId: string) => {
@@ -460,7 +461,7 @@ export default function DocumentosPage() {
           );
         })}
         {sorted.length === 0 && (
-          <div className="px-6 py-12 text-center text-sm text-gray-400">Nenhum documento encontrado.</div>
+          <EmptyState icon={FileText} title="Nenhum documento cadastrado" description="Faça upload do primeiro documento para começar a extrair obrigações automaticamente." actionLabel={isAdmin ? "Upload de Documento" : undefined} onAction={isAdmin ? () => setShowUpload(true) : undefined} />
         )}
       </Card>
 
@@ -557,6 +558,8 @@ export default function DocumentosPage() {
           </>)}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)} title="Excluir documento" description={`Tem certeza que deseja excluir "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`} confirmLabel="Excluir" variant="destructive" onConfirm={async () => { if (!deleteTarget) return; const res = await fetch(`/api/documents/${deleteTarget.id}`, { method: "DELETE" }); if (res.ok) { setMessage({ type: "success", text: `"${deleteTarget.name}" excluído.` }); fetchDocuments(); } setDeleteTarget(null); }} />
 
       {/* Categories Modal */}
       <Dialog open={showCategories} onOpenChange={setShowCategories}>

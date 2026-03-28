@@ -9,7 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Clock, AlertTriangle, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Clock, AlertTriangle, CalendarClock, CheckCircle2, CalendarX } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const STATUSES = ["pendente", "em_andamento", "concluida", "atrasada"] as const;
@@ -246,7 +247,7 @@ export default function CalendarioPage() {
               </div>
             ))}
             {Object.keys(grouped).length === 0 && (
-              <p className="text-sm text-gray-400 py-8 text-center">Nenhuma obrigação encontrada para este mês.</p>
+              <EmptyState icon={CalendarX} title="Nenhuma obrigação neste mês" description="Este mês não possui obrigações cadastradas no calendário." />
             )}
           </div>
         </div>

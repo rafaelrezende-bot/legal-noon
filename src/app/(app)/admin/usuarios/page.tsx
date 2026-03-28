@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Send, RefreshCw, Plus, UserCheck, Users, Pencil } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface InvitedUser {
   id: string;
@@ -48,6 +50,7 @@ export default function UsuariosPage() {
   const [personName, setPersonName] = useState("");
   const [personRole, setPersonRole] = useState("");
   const [personEmail, setPersonEmail] = useState("");
+  const [deactivateTarget, setDeactivateTarget] = useState<any>(null);
 
   const supabase = createClient();
 
@@ -165,15 +168,16 @@ export default function UsuariosPage() {
   };
 
   const handleToggleActive = async (person: any) => {
-    const newActive = !person.active;
-    const action = newActive ? "reativar" : "desativar";
-    if (!newActive && !confirm(`Ao desativar, ${person.name} não aparecerá em novos treinamentos ou períodos de declaração. O histórico será preservado. Continuar?`)) return;
+    if (person.active) {
+      setDeactivateTarget(person);
+      return;
+    }
     const res = await fetch("/api/supervised-persons", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: person.id, active: newActive }),
+      body: JSON.stringify({ id: person.id, active: true }),
     });
     if (res.ok) {
-      setMessage({ type: "success", text: `${person.name} ${newActive ? "reativado(a)" : "desativado(a)"}.` });
+      setMessage({ type: "success", text: `${person.name} reativado(a).` });
       fetchPersons();
     }
   };
@@ -375,7 +379,7 @@ export default function UsuariosPage() {
                 </tr>
               ))}
               {persons.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400">Nenhuma pessoa cadastrada.</td></tr>
+                <tr><td colSpan={5}><EmptyState icon={Users} title="Nenhuma pessoa supervisionada" description="Cadastre as pessoas supervisionadas para vincular treinamentos e declarações." actionLabel="Adicionar Pessoa" onAction={() => { setPersonName(""); setPersonRole(""); setPersonEmail(""); setShowAddPerson(true); }} /></td></tr>
               )}
             </tbody>
           </table>
@@ -404,6 +408,8 @@ export default function UsuariosPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        <ConfirmDialog open={!!deactivateTarget} onOpenChange={() => setDeactivateTarget(null)} title="Desativar pessoa" description={`Ao desativar, ${deactivateTarget?.name} não aparecerá em novos treinamentos ou períodos de declaração. O histórico será preservado.`} confirmLabel="Desativar" variant="warning" onConfirm={async () => { if (!deactivateTarget) return; const res = await fetch("/api/supervised-persons", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: deactivateTarget.id, active: false }) }); if (res.ok) { setMessage({ type: "success", text: `${deactivateTarget.name} desativado(a).` }); fetchPersons(); } setDeactivateTarget(null); }} />
 
         {/* Edit Person Modal */}
         <Dialog open={showEditPerson} onOpenChange={setShowEditPerson}>
