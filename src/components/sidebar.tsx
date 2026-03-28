@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarDays, FileText, GraduationCap, Briefcase, Users, LogOut, Search } from 'lucide-react'
+import { CalendarDays, FileText, GraduationCap, Briefcase, Users, ScrollText, LogOut, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useUserRole } from '@/hooks/use-user-role'
 
@@ -12,6 +12,7 @@ const baseNav = [
   { label: 'Treinamentos', href: '/treinamentos', icon: GraduationCap, adminOnly: false },
   { label: 'Invest. Pessoais', href: '/investimentos-pessoais', icon: Briefcase, adminOnly: false },
   { label: 'Usuários', href: '/admin/usuarios', icon: Users, adminOnly: true },
+  { label: 'Auditoria', href: '/admin/auditoria', icon: ScrollText, adminOnly: true },
 ]
 
 const roleLabels: Record<string, string> = { admin: 'Administrador', editor: 'Editor', leitor: 'Leitor' }

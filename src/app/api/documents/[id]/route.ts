@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/permissions";
+import { logAudit, getAuditUser } from "@/lib/audit";
+import { createClient } from "@/lib/supabase/server";
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = await requireRole('admin')();
@@ -29,6 +31,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Delete from storage if exists
     if (doc?.storage_path) {
       await supabase.storage.from("policy-documents").remove([doc.storage_path]);
+    }
+
+    const authSupabase = await createClient();
+    const auditUser = await getAuditUser(authSupabase);
+    if (auditUser) {
+      logAudit({ supabase: createAdminClient(), ...auditUser, action: "deleted", entityType: "document", entityId: id, entityName: doc?.storage_path });
     }
 
     return NextResponse.json({ success: true });

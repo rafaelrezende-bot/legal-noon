@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/permissions";
+import { logAudit, getAuditUser } from "@/lib/audit";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const denied = await requireRole('admin', 'editor')();
@@ -70,6 +72,12 @@ export async function POST(request: NextRequest) {
       due_date,
       decided_at: new Date().toISOString(),
     }).eq("id", extracted_obligation_id);
+
+    const authSupabase = await createClient();
+    const auditUser = await getAuditUser(authSupabase);
+    if (auditUser) {
+      logAudit({ supabase: createAdminClient(), ...auditUser, action: "included", entityType: "extracted_obligation", entityId: extracted_obligation_id, entityName: eo.title });
+    }
 
     return NextResponse.json({ success: true, obligation_id: obligation.id });
   } catch (error: any) {

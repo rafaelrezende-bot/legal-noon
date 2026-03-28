@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/permissions";
+import { logAudit, getAuditUser } from "@/lib/audit";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -65,6 +67,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const authSupabase = await createClient();
+    const auditUser = await getAuditUser(authSupabase);
+    if (auditUser) {
+      logAudit({ supabase: createAdminClient(), ...auditUser, action: "created", entityType: "training", entityId: data.id, entityName: body.participant_name });
+    }
+
     return NextResponse.json({ record: data });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

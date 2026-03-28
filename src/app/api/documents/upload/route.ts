@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { extractTextFromPDF } from "@/lib/pdf-extract";
 import { processDocumentForRAG } from "@/lib/document-processor";
 import { requireRole } from "@/lib/permissions";
+import { logAudit, getAuditUser } from "@/lib/audit";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const denied = await requireRole('admin', 'editor')();
@@ -61,6 +63,12 @@ export async function POST(request: NextRequest) {
     } catch (ragError: any) {
       console.error("RAG processing error:", ragError.message);
       await supabase.from("policy_documents").update({ rag_status: "error" }).eq("id", doc.id);
+    }
+
+    const authSupabase = await createClient();
+    const auditUser = await getAuditUser(authSupabase);
+    if (auditUser) {
+      logAudit({ supabase: createAdminClient(), ...auditUser, action: "created", entityType: "document", entityId: doc.id, entityName: name });
     }
 
     return NextResponse.json({ document: doc });

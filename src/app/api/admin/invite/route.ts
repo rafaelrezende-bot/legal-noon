@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/permissions";
+import { logAudit, getAuditUser } from "@/lib/audit";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const denied = await requireRole("admin")();
@@ -43,6 +45,12 @@ export async function POST(request: NextRequest) {
         user_id: inviteData.user.id,
         role: userRole,
       });
+    }
+
+    const authSupabase = await createClient();
+    const auditUser = await getAuditUser(authSupabase);
+    if (auditUser) {
+      logAudit({ supabase: createAdminClient(), ...auditUser, action: "created", entityType: "user", entityName: name + " (" + email + ")", details: { role: userRole } });
     }
 
     return NextResponse.json({ success: true });

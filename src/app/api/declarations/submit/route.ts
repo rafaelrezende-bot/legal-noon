@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/permissions";
+import { logAudit, getAuditUser } from "@/lib/audit";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const denied = await requireRole('admin', 'editor')();
@@ -37,6 +39,12 @@ export async function POST(request: NextRequest) {
         .insert(itemsWithDeclaration);
 
       if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 });
+    }
+
+    const authSupabase = await createClient();
+    const auditUser = await getAuditUser(authSupabase);
+    if (auditUser) {
+      logAudit({ supabase: createAdminClient(), ...auditUser, action: "created", entityType: "declaration", entityId: declaration_id, details: { status } });
     }
 
     return NextResponse.json({ success: true });
