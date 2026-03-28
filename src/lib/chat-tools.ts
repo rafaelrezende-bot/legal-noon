@@ -102,6 +102,17 @@ export const toolDefinitions = [
     },
   },
   {
+    name: "status_declaracoes_investimentos",
+    description:
+      "Retorna o status das declarações de investimentos pessoais do período vigente: quem entregou, quem está pendente.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        periodo: { type: "string", description: "Referência do período. Se vazio, retorna o mais recente." },
+      },
+    },
+  },
+  {
     name: "status_treinamentos",
     description:
       "Retorna o status de treinamentos de todas as Pessoas Supervisionadas: quem está em dia, vencendo ou vencido para cada tipo de treinamento.",
@@ -303,6 +314,39 @@ export async function executeTool(
         proximos_7_dias: proximos7,
         concluidas_mes: concluidas,
         pendentes,
+      });
+    }
+
+    case "status_declaracoes_investimentos": {
+      let query = supabase
+        .from("declaration_periods")
+        .select("*, declarations:personal_declarations(participant_name, status, submitted_at)")
+        .order("due_date", { ascending: false })
+        .limit(1);
+
+      if (input.periodo) {
+        query = supabase
+          .from("declaration_periods")
+          .select("*, declarations:personal_declarations(participant_name, status, submitted_at)")
+          .ilike("reference_label", `%${input.periodo}%`)
+          .limit(1);
+      }
+
+      const { data: periods } = await query;
+      const period = periods?.[0];
+      if (!period) return JSON.stringify({ error: "Nenhum período encontrado." });
+
+      const decls = period.declarations || [];
+      const entregues = decls.filter((d: any) => d.status === "entregue").length;
+      const pendentes = decls.filter((d: any) => d.status === "pendente").length;
+      const nada = decls.filter((d: any) => d.status === "nada_a_declarar").length;
+
+      return JSON.stringify({
+        periodo: period.reference_label,
+        prazo: period.due_date,
+        total_participantes: decls.length,
+        entregues, pendentes, nada_a_declarar: nada,
+        participantes: decls.map((d: any) => ({ nome: d.participant_name, status: d.status, entregue_em: d.submitted_at })),
       });
     }
 
