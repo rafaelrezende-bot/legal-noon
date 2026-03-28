@@ -39,8 +39,7 @@ export default function CalendarioPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
-  const [fading, setFading] = useState(false);
-  const prevMonth = useRef(selectedMonth);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     async function loadUser() {
@@ -78,14 +77,12 @@ export default function CalendarioPage() {
   useEffect(() => { fetchYearData(); }, [fetchYearData]);
   useEffect(() => { fetchMonthData(selectedMonth); }, [selectedMonth, fetchYearData]);
 
-  // Fade on month change
+  // Scroll to obligations when month changes (skip first render)
   useEffect(() => {
-    if (prevMonth.current !== selectedMonth) {
-      setFading(true);
-      const t = setTimeout(() => setFading(false), 150);
-      prevMonth.current = selectedMonth;
-      return () => clearTimeout(t);
-    }
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    requestAnimationFrame(() => {
+      document.getElementById("month-obligations")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }, [selectedMonth]);
 
   // KPI totals
@@ -110,7 +107,6 @@ export default function CalendarioPage() {
     setSelectedMonth(idx);
     setSelectedCategories([]);
     setSelectedStatuses([]);
-    document.getElementById("month-obligations")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // Month filters
@@ -234,8 +230,8 @@ export default function CalendarioPage() {
           ))}
         </div>
 
-        {/* Obligations list with fade */}
-        <div className={`transition-opacity duration-150 ${fading ? "opacity-0" : "opacity-100"}`}>
+        {/* Obligations list with fade-in on month change */}
+        <div key={selectedMonth} className="animate-[fadeIn_0.2s_ease-out]">
           <div className="space-y-6">
             {Object.keys(grouped).sort().map(date => (
               <div key={date}>
