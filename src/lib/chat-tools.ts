@@ -92,6 +92,15 @@ export const toolDefinitions = [
       properties: {},
     },
   },
+  {
+    name: "status_revisao_politicas",
+    description:
+      "Retorna o status de revisão de todas as políticas internas: quais estão em dia, próximas do vencimento ou atrasadas.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
 ];
 
 export async function executeTool(
@@ -286,6 +295,33 @@ export async function executeTool(
         concluidas_mes: concluidas,
         pendentes,
       });
+    }
+
+    case "status_revisao_politicas": {
+      const { data: docs } = await supabase
+        .from("policy_documents")
+        .select("name, category, last_reviewed_at")
+        .order("name");
+
+      const now = Date.now();
+      const results = (docs || []).map((d: any) => {
+        if (!d.last_reviewed_at) {
+          return { ...d, status: "nunca_revisado", dias_desde_revisao: null };
+        }
+        const days = Math.floor((now - new Date(d.last_reviewed_at).getTime()) / 86400000);
+        const months = Math.floor(days / 30);
+        let status = "em_dia";
+        if (months >= 12) status = "atrasada";
+        else if (months >= 10) status = "proxima";
+        return { nome: d.name, categoria: d.category, ultima_revisao: d.last_reviewed_at, status, meses_desde_revisao: months };
+      });
+
+      const atrasadas = results.filter((r: any) => r.status === "atrasada").length;
+      const proximas = results.filter((r: any) => r.status === "proxima").length;
+      const emDia = results.filter((r: any) => r.status === "em_dia").length;
+      const nunca = results.filter((r: any) => r.status === "nunca_revisado").length;
+
+      return JSON.stringify({ total: results.length, atrasadas, proximas_do_vencimento: proximas, em_dia: emDia, nunca_revisadas: nunca, politicas: results });
     }
 
     default:

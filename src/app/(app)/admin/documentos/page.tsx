@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FileText, Upload, Download, Trash2, Sparkles, X, Loader2 } from "lucide-react";
+import { FileText, Upload, Download, Trash2, Sparkles, X, Loader2, ClipboardCheck, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 
 interface PolicyDocument {
   id: string;
@@ -20,7 +20,27 @@ interface PolicyDocument {
   category: string;
   pages: number;
   storage_path: string | null;
+  last_reviewed_at: string | null;
   created_at: string;
+}
+
+interface ReviewHistory {
+  id: string;
+  reviewed_at: string;
+  notes: string | null;
+  document_updated: boolean;
+}
+
+function getReviewStatus(lastReviewed: string | null): { status: string; label: string; color: string; bg: string; months?: number } {
+  if (!lastReviewed) return { status: "nunca", label: "Nunca revisado", color: "#3B82F6", bg: "#EFF6FF" };
+  const months = Math.floor((Date.now() - new Date(lastReviewed).getTime()) / (30 * 86400000));
+  if (months >= 12) {
+    const years = Math.floor(months / 12);
+    const label = years >= 2 ? `Atrasada ${years} anos` : `Atrasada ${months} meses`;
+    return { status: "atrasada", label, color: "#DC2626", bg: "#FEF2F2", months };
+  }
+  if (months >= 10) return { status: "proxima", label: "Revisão próxima", color: "#F59E0B", bg: "#FFFBEB", months };
+  return { status: "em_dia", label: "Em dia", color: "#16A34A", bg: "#F0FDF4", months };
 }
 
 interface Suggestion {
@@ -54,12 +74,51 @@ export default function DocumentosPage() {
   const [analysisDocName, setAnalysisDocName] = useState("");
   const [addingObligations, setAddingObligations] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewDoc, setReviewDoc] = useState<PolicyDocument | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewUpdated, setReviewUpdated] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewHistory, setReviewHistory] = useState<ReviewHistory[]>([]);
 
   const fetchDocuments = useCallback(async () => {
     const res = await fetch("/api/documents");
     const { documents: docs } = await res.json();
     setDocuments(docs || []);
   }, []);
+
+  const openReviewModal = async (doc: PolicyDocument) => {
+    setReviewDoc(doc);
+    setReviewNotes("");
+    setReviewUpdated(false);
+    setShowReview(true);
+    const res = await fetch(`/api/documents/${doc.id}/review`);
+    const { reviews } = await res.json();
+    setReviewHistory(reviews || []);
+  };
+
+  const handleReview = async () => {
+    if (!reviewDoc) return;
+    setSubmittingReview(true);
+    try {
+      const res = await fetch(`/api/documents/${reviewDoc.id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: reviewNotes, document_updated: reviewUpdated }),
+      });
+      if (res.ok) {
+        setMessage({ type: "success", text: `Revisão de "${reviewDoc.name}" registrada.` });
+        setShowReview(false);
+        fetchDocuments();
+      } else {
+        setMessage({ type: "error", text: "Erro ao registrar revisão." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Erro de conexão." });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   useEffect(() => {
     fetchDocuments();
@@ -179,6 +238,37 @@ export default function DocumentosPage() {
         </Button>
       </div>
 
+      {/* Review summary cards */}
+      {(() => {
+        const statuses = documents.map((d) => getReviewStatus(d.last_reviewed_at));
+        const atrasadas = statuses.filter((s) => s.status === "atrasada").length;
+        const proximas = statuses.filter((s) => s.status === "proxima").length;
+        const emDia = statuses.filter((s) => s.status === "em_dia").length;
+        const summaryCards = [
+          { label: "Total de políticas", value: documents.length, icon: FileText, color: "#0F334D", bg: "#EBF5FA" },
+          { label: "Revisão atrasada", value: atrasadas, icon: AlertTriangle, color: "#DC2626", bg: "#FEF2F2" },
+          { label: "Revisão próxima", value: proximas, icon: Clock, color: "#F59E0B", bg: "#FFFBEB" },
+          { label: "Em dia", value: emDia, icon: CheckCircle2, color: "#16A34A", bg: "#F0FDF4" },
+        ];
+        return (
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {summaryCards.map((c) => (
+              <Card key={c.label} className="p-5 bg-white rounded-xl shadow-sm border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: c.bg }}>
+                    <c.icon className="w-5 h-5" style={{ color: c.color }} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: c.color }}>{c.value}</p>
+                    <p className="text-xs text-gray-500">{c.label}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        );
+      })()}
+
       {message && (
         <div className={`text-sm mb-4 p-3 rounded-lg ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
           {message.text}
@@ -192,8 +282,9 @@ export default function DocumentosPage() {
               <tr className="border-b border-gray-100">
                 <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Nome</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Categoria</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Revisão</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Última revisão</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Páginas</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Enviado em</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase px-6 py-3">Ações</th>
               </tr>
             </thead>
@@ -218,12 +309,20 @@ export default function DocumentosPage() {
                       {doc.category}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{doc.pages}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {new Date(doc.created_at).toLocaleDateString("pt-BR", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
+                  <td className="px-6 py-4">
+                    {(() => {
+                      const rs = getReviewStatus(doc.last_reviewed_at);
+                      return (
+                        <Badge variant="secondary" className="text-xs font-medium rounded-full" style={{ backgroundColor: rs.bg, color: rs.color }}>{rs.label}</Badge>
+                      );
+                    })()}
                   </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {doc.last_reviewed_at
+                      ? new Date(doc.last_reviewed_at).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
+                      : "—"}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{doc.pages}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
                       {doc.storage_path && (
@@ -240,6 +339,13 @@ export default function DocumentosPage() {
                         {analyzing === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       </button>
                       <button
+                        onClick={() => openReviewModal(doc)}
+                        className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600"
+                        title="Registrar revisão"
+                      >
+                        <ClipboardCheck className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleDelete(doc.id, doc.name)}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"
                       >
@@ -251,7 +357,7 @@ export default function DocumentosPage() {
               ))}
               {documents.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-400">
                     Nenhum documento cadastrado.
                   </td>
                 </tr>
@@ -372,6 +478,67 @@ export default function DocumentosPage() {
               </Button>
               <Button variant="outline" onClick={() => setShowAnalysis(false)}>Descartar</Button>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* Review Modal */}
+      <Dialog open={showReview} onOpenChange={setShowReview}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          {reviewDoc && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Registrar revisão</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{reviewDoc.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Última revisão: {reviewDoc.last_reviewed_at
+                      ? new Date(reviewDoc.last_reviewed_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+                      : "Nunca revisado"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Notas / observações</label>
+                  <textarea
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                    placeholder="Ex: Revisada sem alterações"
+                    className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm min-h-[80px] resize-none"
+                  />
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={reviewUpdated} onChange={(e) => setReviewUpdated(e.target.checked)} className="rounded" />
+                  <span className="text-sm text-gray-700">O documento foi atualizado?</span>
+                </label>
+                <Button
+                  onClick={handleReview}
+                  disabled={submittingReview}
+                  className="w-full text-white"
+                  style={{ backgroundColor: "#0F334D" }}
+                >
+                  {submittingReview ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Registrando...</> : "Confirmar revisão"}
+                </Button>
+
+                {/* Review history */}
+                {reviewHistory.length > 0 && (
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">Histórico de revisões</p>
+                    <div className="space-y-2">
+                      {reviewHistory.map((r) => (
+                        <div key={r.id} className="text-xs text-gray-500 flex items-start gap-2">
+                          <span className="font-medium text-gray-700 shrink-0">
+                            {new Date(r.reviewed_at).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                          <span>—</span>
+                          <span>{r.notes || "Sem notas"}{r.document_updated ? " (doc atualizado)" : ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
