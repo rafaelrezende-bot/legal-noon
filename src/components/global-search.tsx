@@ -43,17 +43,17 @@ export function GlobalSearch() {
 
   async function search(term: string) {
     setLoading(true);
-    const t = `%${term}%`;
+    const pattern = `%${term}%`;
 
     const [obs, docs, persons] = await Promise.all([
-      supabase.from("obligations").select("id, title, description, category:categories(name)").or(`title.ilike.${t},description.ilike.${t}`).limit(5),
-      supabase.from("policy_documents").select("id, name, category:categories(name)").ilike("name", t).limit(5),
-      supabase.from("supervised_persons").select("id, name, role, email").or(`name.ilike.${t},email.ilike.${t}`).limit(5),
+      supabase.from("obligations").select("id, title, description, category:categories(name)").or(`title.ilike.${pattern},description.ilike.${pattern}`).limit(5),
+      supabase.from("policy_documents").select("id, name").ilike("name", pattern).limit(5),
+      supabase.from("supervised_persons").select("id, name, role, email").or(`name.ilike.${pattern},email.ilike.${pattern}`).limit(5),
     ]);
 
     setResults([
       ...(obs.data || []).map((o: any) => ({ id: o.id, type: "obligation" as const, title: o.title, subtitle: o.category?.name, href: "/" })),
-      ...(docs.data || []).map((d: any) => ({ id: d.id, type: "document" as const, title: d.name, subtitle: d.category?.name, href: "/admin/documentos" })),
+      ...(docs.data || []).map((d: any) => ({ id: d.id, type: "document" as const, title: d.name, subtitle: "", href: "/admin/documentos" })),
       ...(persons.data || []).map((p: any) => ({ id: p.id, type: "person" as const, title: p.name, subtitle: p.role || p.email, href: "/admin/usuarios" })),
     ]);
     setLoading(false);
