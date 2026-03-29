@@ -1,6 +1,10 @@
+"use client"
+
+import { Suspense, lazy } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ChatPanel } from "@/components/chat-panel"
-import { GlobalSearch } from "@/components/global-search"
+
+const GlobalSearch = lazy(() => import("@/components/global-search").then(m => ({ default: m.GlobalSearch })))
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +14,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <ChatPanel />
-      <GlobalSearch />
+      <Suspense fallback={null}>
+        <GlobalSearch />
+      </Suspense>
     </>
   )
 }

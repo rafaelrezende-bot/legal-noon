@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { CalendarDays, FileText, GraduationCap, Briefcase, Users, ScrollText, LogOut, Search } from 'lucide-react'
+import { openGlobalSearch } from '@/components/global-search'
 import { createClient } from '@/lib/supabase/client'
 import { useUserRole } from '@/hooks/use-user-role'
 
@@ -59,7 +60,7 @@ export function Sidebar() {
       </div>
       <div className="mx-5 mb-2" style={{ height: '1px', backgroundColor: '#D2BD80', opacity: 0.3 }} />
       <div className="px-3 mb-2">
-        <button onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
+        <button onClick={() => openGlobalSearch()}
           className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors" style={{ color: '#B2C7D6' }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#B2C7D6'; }}>

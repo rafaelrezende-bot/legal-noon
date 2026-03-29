@@ -19,6 +19,10 @@ interface SearchResult {
 const icons = { obligation: CalendarDays, document: FileText, person: Users };
 const labels = { obligation: "Obrigações", document: "Documentos", person: "Pessoas" };
 
+// Global open trigger for sidebar button
+let globalOpenSearch: (() => void) | null = null;
+export function openGlobalSearch() { globalOpenSearch?.(); }
+
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -26,6 +30,8 @@ export function GlobalSearch() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => { globalOpenSearch = () => setOpen(true); return () => { globalOpenSearch = null; }; }, []);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
