@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
-} from "@/components/ui/command";
-import { CalendarDays, FileText, Users } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { CalendarDays, FileText, Users, Search, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface SearchResult {
@@ -19,9 +18,8 @@ interface SearchResult {
 const icons = { obligation: CalendarDays, document: FileText, person: Users };
 const labels = { obligation: "Obrigações", document: "Documentos", person: "Pessoas" };
 
-// Global open trigger for sidebar button
-let globalOpenSearch: (() => void) | null = null;
-export function openGlobalSearch() { globalOpenSearch?.(); }
+let globalOpenFn: (() => void) | null = null;
+export function openGlobalSearch() { globalOpenFn?.(); }
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
@@ -31,66 +29,88 @@ export function GlobalSearch() {
   const router = useRouter();
   const supabase = createClient();
 
-  useEffect(() => { globalOpenSearch = () => setOpen(true); return () => { globalOpenSearch = null; }; }, []);
+  useEffect(() => { globalOpenFn = () => setOpen(true); return () => { globalOpenFn = null; }; }, []);
 
+  // ⌘K shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setOpen((v) => !v); }
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setOpen(v => !v); }
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
 
+  // Debounced search
   useEffect(() => {
     if (!query || query.length < 2) { setResults([]); return; }
-    const timer = setTimeout(() => search(query), 300);
+    const timer = setTimeout(() => doSearch(query), 300);
     return () => clearTimeout(timer);
   }, [query]);
 
-  async function search(term: string) {
+  const doSearch = useCallback(async (term: string) => {
     setLoading(true);
     const pattern = `%${term}%`;
-
-    const [obs, docs, persons] = await Promise.all([
-      supabase.from("obligations").select("id, title, description, category:categories(name)").or(`title.ilike.${pattern},description.ilike.${pattern}`).limit(5),
-      supabase.from("policy_documents").select("id, name").ilike("name", pattern).limit(5),
-      supabase.from("supervised_persons").select("id, name, role, email").or(`name.ilike.${pattern},email.ilike.${pattern}`).limit(5),
-    ]);
-
-    setResults([
-      ...(obs.data || []).map((o: any) => ({ id: o.id, type: "obligation" as const, title: o.title, subtitle: o.category?.name, href: "/" })),
-      ...(docs.data || []).map((d: any) => ({ id: d.id, type: "document" as const, title: d.name, subtitle: "", href: "/admin/documentos" })),
-      ...(persons.data || []).map((p: any) => ({ id: p.id, type: "person" as const, title: p.name, subtitle: p.role || p.email, href: "/admin/usuarios" })),
-    ]);
+    try {
+      const [obs, docs, persons] = await Promise.all([
+        supabase.from("obligations").select("id, title, description").or(`title.ilike.${pattern},description.ilike.${pattern}`).limit(5),
+        supabase.from("policy_documents").select("id, name").ilike("name", pattern).limit(5),
+        supabase.from("supervised_persons").select("id, name, role").or(`name.ilike.${pattern}`).limit(5),
+      ]);
+      setResults([
+        ...(obs.data || []).map((o: any) => ({ id: o.id, type: "obligation" as const, title: o.title, subtitle: "", href: "/" })),
+        ...(docs.data || []).map((d: any) => ({ id: d.id, type: "document" as const, title: d.name, subtitle: "", href: "/admin/documentos" })),
+        ...(persons.data || []).map((p: any) => ({ id: p.id, type: "person" as const, title: p.name, subtitle: p.role || "", href: "/admin/usuarios" })),
+      ]);
+    } catch { setResults([]); }
     setLoading(false);
-  }
+  }, []);
+
+  const handleSelect = (r: SearchResult) => { setOpen(false); setQuery(""); router.push(r.href); };
 
   const grouped = results.reduce((acc, r) => { if (!acc[r.type]) acc[r.type] = []; acc[r.type].push(r); return acc; }, {} as Record<string, SearchResult[]>);
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Buscar obrigações, documentos, pessoas..." value={query} onValueChange={setQuery} />
-      <CommandList>
-        {loading && <div className="py-6 text-center text-sm text-gray-500">Buscando...</div>}
-        {!loading && query.length >= 2 && results.length === 0 && <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>}
-        {!loading && query.length < 2 && <div className="py-6 text-center text-sm text-gray-400">Digite ao menos 2 caracteres para buscar</div>}
-        {Object.entries(grouped).map(([type, items]) => {
-          const Icon = icons[type as keyof typeof icons];
-          return (
-            <CommandGroup key={type} heading={labels[type as keyof typeof labels]}>
-              {items.map((item) => (
-                <CommandItem key={item.id} value={item.title} onSelect={() => { setOpen(false); setQuery(""); router.push(item.href); }} className="cursor-pointer">
-                  <Icon className="mr-2 h-4 w-4 text-gray-400" />
-                  <div className="flex flex-col">
-                    <span className="text-sm">{item.title}</span>
-                    {item.subtitle && <span className="text-xs text-gray-400">{item.subtitle}</span>}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          );
-        })}
-      </CommandList>
-    </CommandDialog>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setQuery(""); setResults([]); } }}>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
+        <div className="flex items-center border-b border-gray-200 px-4">
+          <Search className="w-4 h-4 text-gray-400 shrink-0" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar obrigações, documentos, pessoas..."
+            className="border-0 focus-visible:ring-0 text-sm h-12"
+            autoFocus
+          />
+          {loading && <Loader2 className="w-4 h-4 text-gray-400 animate-spin shrink-0" />}
+        </div>
+        <div className="max-h-[300px] overflow-y-auto">
+          {!loading && query.length >= 2 && results.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-8">Nenhum resultado encontrado.</p>
+          )}
+          {query.length > 0 && query.length < 2 && (
+            <p className="text-sm text-gray-400 text-center py-8">Digite ao menos 2 caracteres</p>
+          )}
+          {Object.entries(grouped).map(([type, items]) => {
+            const Icon = icons[type as keyof typeof icons];
+            const label = labels[type as keyof typeof labels];
+            return (
+              <div key={type}>
+                <p className="text-[10px] font-medium text-gray-400 uppercase px-4 pt-3 pb-1">{label}</p>
+                {items.map((item) => (
+                  <button key={item.id} onClick={() => handleSelect(item)}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+                    <Icon className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-sm text-gray-800 block truncate">{item.title}</span>
+                      {item.subtitle && <span className="text-xs text-gray-400 block truncate">{item.subtitle}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
