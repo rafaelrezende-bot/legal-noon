@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { FEATURES } from "@/lib/feature-flags";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,12 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
 };
 
 export default function InvestimentosPessoaisPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!FEATURES.INVESTIMENTOS_PESSOAIS) router.replace("/");
+  }, [router]);
+
   const [periods, setPeriods] = useState<Period[]>([]);
   const [showNewPeriod, setShowNewPeriod] = useState(false);
   const [showRegister, setShowRegister] = useState(false);

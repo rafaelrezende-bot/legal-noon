@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { FEATURES } from "@/lib/feature-flags";
 
 export const toolDefinitions = [
   {
@@ -101,17 +102,21 @@ export const toolDefinitions = [
       properties: {},
     },
   },
-  {
-    name: "status_declaracoes_investimentos",
-    description:
-      "Retorna o status das declarações de investimentos pessoais do período vigente: quem entregou, quem está pendente.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        periodo: { type: "string", description: "Referência do período. Se vazio, retorna o mais recente." },
-      },
-    },
-  },
+  ...(FEATURES.INVESTIMENTOS_PESSOAIS
+    ? [
+        {
+          name: "status_declaracoes_investimentos",
+          description:
+            "Retorna o status das declarações de investimentos pessoais do período vigente: quem entregou, quem está pendente.",
+          input_schema: {
+            type: "object" as const,
+            properties: {
+              periodo: { type: "string", description: "Referência do período. Se vazio, retorna o mais recente." },
+            },
+          },
+        },
+      ]
+    : []),
   {
     name: "listar_pessoas_supervisionadas",
     description: "Lista todas as Pessoas Supervisionadas ativas da Noon Capital",

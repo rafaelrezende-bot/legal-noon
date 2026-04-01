@@ -6,12 +6,15 @@ import { CalendarDays, FileText, GraduationCap, Briefcase, Users, ScrollText, Lo
 import { openGlobalSearch } from '@/components/global-search'
 import { createClient } from '@/lib/supabase/client'
 import { useUserRole } from '@/hooks/use-user-role'
+import { FEATURES } from '@/lib/feature-flags'
 
 const baseNav = [
   { label: 'Calendário', href: '/', icon: CalendarDays, adminOnly: false },
   { label: 'Documentos', href: '/admin/documentos', icon: FileText, adminOnly: false },
   { label: 'Treinamentos', href: '/treinamentos', icon: GraduationCap, adminOnly: false },
-  { label: 'Invest. Pessoais', href: '/investimentos-pessoais', icon: Briefcase, adminOnly: false },
+  ...(FEATURES.INVESTIMENTOS_PESSOAIS
+    ? [{ label: 'Invest. Pessoais', href: '/investimentos-pessoais', icon: Briefcase, adminOnly: false }]
+    : []),
   { label: 'Usuários', href: '/admin/usuarios', icon: Users, adminOnly: true },
   { label: 'Auditoria', href: '/admin/auditoria', icon: ScrollText, adminOnly: true },
 ]
